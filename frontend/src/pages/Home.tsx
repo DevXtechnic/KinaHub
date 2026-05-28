@@ -35,19 +35,19 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
-      <section className="bg-surface border-b border-border">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+      <section className="bg-background border-b border-border">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-lg bg-primary p-6 text-background sm:p-8"
+            className="rounded-lg border border-border bg-surface p-5 text-primary shadow-sm sm:p-6"
           >
             <div className="mb-6 flex flex-wrap gap-2">
               {quickLinks.map((label) => (
                 <Link
                   key={label}
                   to={`/products?category=${label.toLowerCase().replaceAll(' ', '-')}`}
-                  className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-white/85 transition-colors hover:bg-white hover:text-primary"
+                  className="rounded-full border border-border bg-muted px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:border-accent hover:bg-accent hover:text-background"
                 >
                   {label}
                 </Link>
@@ -58,7 +58,7 @@ export default function Home() {
               <Flame className="h-4 w-4" />
               Flash picks
             </p>
-            <h1 className="max-w-2xl text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl">
+            <h1 className="max-w-2xl text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
               Deals first. Products everywhere.
             </h1>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -70,21 +70,21 @@ export default function Home() {
               </Link>
               <Link
                 to="/products?random=true"
-                className="inline-flex items-center gap-2 rounded-md border border-white/20 px-5 py-3 font-semibold text-white transition-colors hover:bg-white hover:text-primary"
+                className="inline-flex items-center gap-2 rounded-md border border-border px-5 py-3 font-semibold text-primary transition-colors hover:border-accent hover:bg-surface"
               >
                 Random feed <RefreshCw className="h-4 w-4" />
               </Link>
             </div>
           </motion.div>
 
-          <div className="rounded-lg border border-border bg-background p-4">
+          <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
             {heroProduct ? (
               <Link to={`/product/${heroProduct.slug}`} className="group block">
-                <div className="aspect-[4/3] overflow-hidden rounded-md bg-muted">
+                <div className="aspect-[5/4] overflow-hidden rounded-md bg-muted">
                   <img
                     src={productImage(heroProduct)}
                     alt={heroProduct.name}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>
                 <div className="pt-4">
@@ -102,13 +102,13 @@ export default function Home() {
                 </div>
               </Link>
             ) : (
-              <div className="flex aspect-[4/3] items-center justify-center rounded-md bg-muted text-secondary">Loading products</div>
+              <div className="flex aspect-[5/4] items-center justify-center rounded-md bg-muted text-secondary">Loading products</div>
             )}
           </div>
         </div>
       </section>
 
-      <section className="border-b border-border bg-surface">
+      <section className="border-b border-border bg-muted/40">
         <div className="mx-auto grid max-w-7xl grid-cols-1 divide-y divide-border px-4 sm:px-6 md:grid-cols-3 md:divide-x md:divide-y-0 lg:px-8">
           {trustBadges.map(({ Icon, title, copy }) => (
             <div key={title} className="flex items-center gap-4 py-5 md:px-6">
@@ -140,7 +140,7 @@ export default function Home() {
             <Link
               key={category.id}
               to={`/products?category=${category.slug}`}
-              className="rounded-lg border border-border bg-surface p-4 transition-colors hover:border-accent"
+              className="rounded-lg border border-border bg-surface p-4 transition-colors hover:border-accent hover:bg-muted"
             >
               <p className="font-semibold text-primary">{category.name}</p>
               <p className="mt-1 line-clamp-2 text-xs text-secondary">{category.description}</p>

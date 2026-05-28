@@ -18,12 +18,12 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
   return (
     <Link to={`/product/${product.slug}`} className="group block h-full">
       <article className="h-full overflow-hidden rounded-lg border border-border bg-surface transition-all duration-300 hover:-translate-y-1 hover:border-accent hover:shadow-xl hover:shadow-black/5">
-        <div className="relative aspect-square overflow-hidden bg-muted">
+        <div className="relative aspect-[5/4] overflow-hidden bg-muted">
           {image ? (
             <img
               src={image}
               alt={product.name}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
               loading="lazy"
             />
           ) : (
@@ -41,7 +41,7 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
           )}
         </div>
 
-        <div className={`${compact ? 'p-3' : 'p-4'} flex min-h-[168px] flex-col`}>
+        <div className={`${compact ? 'p-3' : 'p-3 sm:p-4'} flex min-h-[132px] flex-col sm:min-h-[168px]`}>
           <div className="mb-2 flex items-center justify-between gap-3 text-xs text-secondary">
             <span className="truncate uppercase tracking-wide">{product.category.name}</span>
             <span className="flex shrink-0 items-center gap-1">
@@ -50,20 +50,20 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
             </span>
           </div>
 
-          <h3 className="line-clamp-2 min-h-[44px] text-sm font-semibold leading-5 text-primary">
+          <h3 className="line-clamp-2 min-h-[40px] text-[13px] font-semibold leading-5 text-primary sm:text-sm">
             {product.name}
           </h3>
-          <p className="mt-1 line-clamp-2 text-xs leading-5 text-secondary">{product.description}</p>
+          <p className="mt-1 hidden text-xs leading-5 text-secondary sm:line-clamp-2">{product.description}</p>
 
-          <div className="mt-auto flex items-end justify-between gap-3 pt-4">
+          <div className="mt-auto flex items-end justify-between gap-2 pt-3 sm:gap-3 sm:pt-4">
             <div className="min-w-0">
               {hasDiscount && (
                 <p className="text-xs text-secondary line-through">{formatPrice(product.price)}</p>
               )}
-              <p className="text-base font-bold text-primary">{formatPrice(price(product))}</p>
+              <p className="text-sm font-bold text-primary sm:text-base">{formatPrice(price(product))}</p>
             </div>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-background transition-colors group-hover:bg-accent">
-              <ShoppingBag className="h-4 w-4" />
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-background transition-colors group-hover:bg-accent sm:h-9 sm:w-9">
+              <ShoppingBag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
           </div>
         </div>

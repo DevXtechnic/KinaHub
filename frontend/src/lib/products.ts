@@ -1,4 +1,6 @@
-export const API = 'http://localhost:8000/api/products';
+import { API_BASE } from './api';
+
+export const API = `${API_BASE}/products`;
 
 export interface ProductImageType {
   id: number;
@@ -30,6 +32,11 @@ export interface ProductType {
   id: number;
   name: string;
   slug: string;
+  store?: {
+    id: number;
+    name: string;
+    slug: string;
+  } | null;
   category: CategoryType;
   brand: BrandType | null;
   description: string;
@@ -41,6 +48,7 @@ export interface ProductType {
   rating: string;
   tag: string | null;
   is_featured: boolean;
+  is_active: boolean;
   images: ProductImageType[];
 }
 

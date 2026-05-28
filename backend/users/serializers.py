@@ -1,0 +1,81 @@
+from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken
+from crm.models import ActivityLog, CustomerRecord, SellerRecord
+from sellers.models import SellerProfile, Store
+from .models import Address, CustomerProfile, User
+
+
+class UserSerializer(serializers.ModelSerializer):
+    effective_role = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "first_name", "last_name", "phone", "address", "role", "effective_role", "is_active", "date_joined"]
+        read_only_fields = ["id", "effective_role", "is_active", "date_joined"]
+
+
+class RegisterSerializer(serializers.Serializer):
+    ROLE_CHOICES = ("customer", "seller")
+
+    name = serializers.CharField(max_length=200)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    role = serializers.ChoiceField(choices=ROLE_CHOICES)
+    business_name = serializers.CharField(max_length=220, required=False, allow_blank=True)
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
+    def validate(self, attrs):
+        if attrs["role"] == "seller" and not attrs.get("business_name"):
+            raise serializers.ValidationError({"business_name": "Business name is required for seller accounts."})
+        return attrs
+
+    def create(self, validated_data):
+        name = validated_data["name"].strip()
+        first_name, _, last_name = name.partition(" ")
+        user = User.objects.create_user(
+            username=validated_data["email"],
+            email=validated_data["email"],
+            password=validated_data["password"],
+            role=validated_data["role"],
+            first_name=first_name,
+            last_name=last_name,
+        )
+
+        if user.role == User.ROLE_CUSTOMER:
+            CustomerProfile.objects.create(user=user, full_name=name)
+            CustomerRecord.objects.create(user=user)
+        else:
+            seller = SellerProfile.objects.create(user=user, business_name=validated_data["business_name"])
+            Store.objects.create(seller=seller, name=validated_data["business_name"])
+            SellerRecord.objects.create(seller=seller)
+
+        ActivityLog.objects.create(actor=user, verb="registered", target_type="user", target_id=str(user.id), metadata={"role": user.role})
+        return user
+
+    def to_representation(self, user):
+        refresh = RefreshToken.for_user(user)
+        return {
+            "user": UserSerializer(user).data,
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+        }
+
+
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = "__all__"
+        read_only_fields = ["id", "user", "created_at"]
+
+
+class CustomerProfileSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = CustomerProfile
+        fields = ["id", "user", "full_name", "notes", "lifetime_value", "created_at", "updated_at"]
+        read_only_fields = ["id", "user", "lifetime_value", "created_at", "updated_at"]

@@ -1,15 +1,26 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Minus, Plus, ShieldCheck, ShoppingBag, Star, Truck } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Check, Minus, Plus, ShieldCheck, ShoppingBag, Star, Truck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { API, formatPrice, price, productImage } from '../lib/products';
 import type { ProductType } from '../lib/products';
+import { useCart } from '../context/CartContext';
 
 export default function ProductDetails() {
   const { slug } = useParams();
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [product, setProduct] = useState<ProductType | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [added, setAdded] = useState(false);
+
+  function handleAddToCart() {
+    if (!product) return;
+    addToCart(product, quantity);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  }
 
   useEffect(() => {
     if (!slug) return;
@@ -59,9 +70,9 @@ export default function ProductDetails() {
           animate={{ opacity: 1, y: 0 }}
           className="rounded-lg border border-border bg-surface p-4"
         >
-          <div className="aspect-square overflow-hidden rounded-md bg-muted">
+          <div className="aspect-[5/4] overflow-hidden rounded-md bg-muted">
             {image ? (
-              <img src={image} alt={product.name} className="h-full w-full object-cover" />
+              <img src={image} alt={product.name} className="h-full w-full object-cover object-center" />
             ) : (
               <div className="flex h-full items-center justify-center text-secondary">No image</div>
             )}
@@ -83,7 +94,7 @@ export default function ProductDetails() {
               </span>
             </div>
 
-            <p className="mb-2 text-sm text-secondary">{product.brand?.name || 'Kina'}</p>
+            <p className="mb-2 text-sm text-secondary">{product.brand?.name || 'Dukan'}</p>
             <h1 className="text-3xl font-black tracking-tight">{product.name}</h1>
             <p className="mt-4 leading-7 text-secondary">{product.description}</p>
 
@@ -115,10 +126,46 @@ export default function ProductDetails() {
               </div>
             </div>
 
-            <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-accent px-5 py-4 font-bold text-background transition-colors hover:bg-orange-600">
-              <ShoppingBag className="h-5 w-5" />
-              Add to cart - {formatPrice(subtotal)}
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={product.stock === 0}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-accent px-5 py-4 font-bold text-background transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {added ? (
+                  <motion.span
+                    key="added"
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    className="flex items-center gap-2"
+                  >
+                    <Check className="h-5 w-5" /> Added to cart!
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="add"
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    className="flex items-center gap-2"
+                  >
+                    <ShoppingBag className="h-5 w-5" />
+                    {product.stock === 0 ? 'Out of stock' : `Add to cart — ${formatPrice(subtotal)}`}
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </button>
+            {added && (
+              <button
+                type="button"
+                onClick={() => navigate('/cart')}
+                className="mt-2 w-full rounded-md border border-accent py-3 text-sm font-semibold text-accent hover:bg-accent/10 transition-colors"
+              >
+                View Cart →
+              </button>
+            )}
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-md border border-border p-3">

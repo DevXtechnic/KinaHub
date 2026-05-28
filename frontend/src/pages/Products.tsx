@@ -91,14 +91,14 @@ export default function Products() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_1fr]">
         <aside className="lg:sticky lg:top-28 lg:h-fit">
           <div className="rounded-lg border border-border bg-surface p-4">
-            <h2 className="mb-4 flex items-center gap-2 font-bold">
+            <h2 className="mb-3 lg:mb-4 flex items-center gap-2 font-bold">
               <Filter className="h-4 w-4 text-accent" />
               Categories
             </h2>
-            <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+            <div className="flex flex-row overflow-x-auto pb-2 gap-2 lg:grid lg:grid-cols-1 lg:overflow-visible lg:pb-0 scrollbar-hide">
               <Link
                 to={query ? `/products?q=${encodeURIComponent(query)}` : '/products'}
-                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${!categoryFilter ? 'bg-accent text-background' : 'bg-background text-secondary hover:text-primary'}`}
+                className={`shrink-0 rounded-md px-3 py-1.5 lg:py-2 text-sm font-medium transition-colors ${!categoryFilter ? 'bg-accent text-background' : 'bg-background border border-border lg:border-transparent text-secondary hover:text-primary'}`}
               >
                 All
               </Link>
@@ -111,7 +111,7 @@ export default function Products() {
                   <Link
                     key={category.id}
                     to={`/products?${params.toString()}`}
-                    className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${categoryFilter === category.slug ? 'bg-accent text-background' : 'bg-background text-secondary hover:text-primary'}`}
+                    className={`shrink-0 rounded-md px-3 py-1.5 lg:py-2 text-sm font-medium transition-colors ${categoryFilter === category.slug ? 'bg-accent text-background' : 'bg-background border border-border lg:border-transparent text-secondary hover:text-primary'}`}
                   >
                     {category.name}
                   </Link>
@@ -123,7 +123,7 @@ export default function Products() {
 
         <section>
           {products.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
