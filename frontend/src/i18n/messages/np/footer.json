@@ -1,0 +1,16 @@
+{
+  "description": "उत्पादन, डिल, डेलिभरी, र चेकआउट।",
+  "shopTitle": "किनमेल",
+  "ordersTitle": "अर्डरहरू",
+  "contactTitle": "सम्पर्क",
+  "allProducts": "सबै उत्पादन",
+  "mobiles": "मोबाइल",
+  "fashion": "फेसन",
+  "groceries": "ग्रोसरी",
+  "cart": "कार्ट",
+  "login": "लगइन",
+  "register": "रजिस्टर",
+  "location": "काठमाडौँ, नेपाल",
+  "github": "github.com/rudra-buildlab",
+  "email": "teamrudra.dev@gmail.com"
+}

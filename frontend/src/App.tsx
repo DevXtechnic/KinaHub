@@ -10,6 +10,7 @@ import Checkout from './pages/Checkout';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { LocaleProvider } from './i18n/LocaleContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './layouts/DashboardLayout';
 import DashboardHome from './pages/DashboardHome';
@@ -24,7 +25,8 @@ import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   return (
-    <ThemeProvider>
+    <LocaleProvider>
+      <ThemeProvider>
       <AuthProvider>
         <CartProvider>
           <BrowserRouter>
@@ -65,6 +67,7 @@ function App() {
         </CartProvider>
       </AuthProvider>
     </ThemeProvider>
+    </LocaleProvider>
   );
 }
 

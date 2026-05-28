@@ -5,10 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { API, formatPrice, price, productImage } from '../lib/products';
 import type { ProductType } from '../lib/products';
 import { useCart } from '../context/CartContext';
+import { useTranslation } from '../i18n/LocaleContext';
+import { categoryName } from '../lib/categoryText';
 
 export default function ProductDetails() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { addToCart } = useCart();
   const [product, setProduct] = useState<ProductType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,18 +40,18 @@ export default function ProductDetails() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-24 text-center text-secondary">
-        Loading product
+      <div className="mx-auto max-w-7xl px-4 py-16 text-center text-secondary sm:py-24">
+        {t('products.loadingProduct', { defaultValue: 'Loading product' })}
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-24 text-center">
-        <h2 className="text-2xl font-bold">Product not found</h2>
+      <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:py-24">
+        <h2 className="text-xl font-bold sm:text-2xl">{t('products.notFound', { defaultValue: 'Product not found' })}</h2>
         <Link to="/products" className="mt-4 inline-block font-semibold text-accent hover:underline">
-          Back to products
+          {t('products.backToProducts', { defaultValue: 'Back to products' })}
         </Link>
       </div>
     );
@@ -58,32 +61,32 @@ export default function ProductDetails() {
   const subtotal = price(product) * quantity;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <Link to="/products" className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-secondary hover:text-primary">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <Link to="/products" className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-secondary hover:text-primary sm:mb-6">
         <ArrowLeft className="h-4 w-4" />
-        Back to products
+        {t('products.backToProducts', { defaultValue: 'Back to products' })}
       </Link>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_440px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_440px] lg:gap-8">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg border border-border bg-surface p-4"
+          className="self-start rounded-lg border border-border bg-surface p-4 shadow-sm sm:p-5 lg:p-4"
         >
-          <div className="aspect-[5/4] overflow-hidden rounded-md bg-muted">
+          <div className="aspect-[4/3] overflow-hidden rounded-md bg-muted">
             {image ? (
               <img src={image} alt={product.name} className="h-full w-full object-cover object-center" />
             ) : (
-              <div className="flex h-full items-center justify-center text-secondary">No image</div>
+              <div className="flex h-full items-center justify-center text-secondary">{t('products.noImage', { defaultValue: 'No image' })}</div>
             )}
           </div>
         </motion.div>
 
         <aside className="lg:sticky lg:top-28 lg:h-fit">
-          <div className="rounded-lg border border-border bg-surface p-6">
+          <div className="rounded-lg border border-border bg-surface p-5 shadow-sm sm:p-6">
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <span className="rounded bg-accent/10 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-accent">
-                {product.category.name}
+                {categoryName(t, product.category.slug, product.category.name)}
               </span>
               {product.tag && (
                 <span className="rounded bg-muted px-2 py-1 text-xs font-semibold text-secondary">{product.tag}</span>
@@ -95,18 +98,18 @@ export default function ProductDetails() {
             </div>
 
             <p className="mb-2 text-sm text-secondary">{product.brand?.name || 'Dukan'}</p>
-            <h1 className="text-3xl font-black tracking-tight">{product.name}</h1>
+            <h1 className="text-xl font-black tracking-tight sm:text-3xl">{product.name}</h1>
             <p className="mt-4 leading-7 text-secondary">{product.description}</p>
 
             <div className="mt-6 flex items-baseline gap-3">
-              <span className="text-3xl font-black text-primary">{formatPrice(price(product))}</span>
+              <span className="text-2xl font-black text-primary sm:text-3xl">{formatPrice(price(product))}</span>
               {product.discount_price && (
                 <span className="text-sm text-secondary line-through">{formatPrice(product.price)}</span>
               )}
             </div>
 
             <div className="mt-6 flex items-center justify-between rounded-md bg-background p-3">
-              <span className="text-sm font-semibold">{product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}</span>
+              <span className="text-sm font-semibold">{product.stock > 0 ? `${product.stock} ${t('products.inStock', { defaultValue: 'in stock' })}` : t('products.outOfStock', { defaultValue: 'Out of stock' })}</span>
               <div className="flex items-center rounded-md border border-border bg-surface">
                 <button
                   type="button"
@@ -130,7 +133,7 @@ export default function ProductDetails() {
               type="button"
               onClick={handleAddToCart}
               disabled={product.stock === 0}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-accent px-5 py-4 font-bold text-background transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-accent px-5 py-4 font-bold text-background transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <AnimatePresence mode="wait" initial={false}>
                 {added ? (
@@ -141,7 +144,7 @@ export default function ProductDetails() {
                     exit={{ opacity: 0, y: 8 }}
                     className="flex items-center gap-2"
                   >
-                    <Check className="h-5 w-5" /> Added to cart!
+                    <Check className="h-5 w-5" /> {t('products.addedToCart', { defaultValue: 'Added to cart!' })}
                   </motion.span>
                 ) : (
                   <motion.span
@@ -152,7 +155,7 @@ export default function ProductDetails() {
                     className="flex items-center gap-2"
                   >
                     <ShoppingBag className="h-5 w-5" />
-                    {product.stock === 0 ? 'Out of stock' : `Add to cart — ${formatPrice(subtotal)}`}
+                    {product.stock === 0 ? t('products.outOfStock', { defaultValue: 'Out of stock' }) : `${t('products.addToCart', { defaultValue: 'Add to cart' })} — ${formatPrice(subtotal)}`}
                   </motion.span>
                 )}
               </AnimatePresence>
@@ -163,27 +166,27 @@ export default function ProductDetails() {
                 onClick={() => navigate('/cart')}
                 className="mt-2 w-full rounded-md border border-accent py-3 text-sm font-semibold text-accent hover:bg-accent/10 transition-colors"
               >
-                View Cart →
+                {t('products.viewCart', { defaultValue: 'View Cart →' })}
               </button>
             )}
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-md border border-border p-3">
                 <Truck className="mb-2 h-5 w-5 text-accent" />
-                <p className="text-sm font-semibold">Fast delivery</p>
-                <p className="text-xs text-secondary">Local shipping options</p>
+                <p className="text-sm font-semibold">{t('products.fastDelivery', { defaultValue: 'Fast delivery' })}</p>
+                <p className="text-xs text-secondary">{t('products.localShipping', { defaultValue: 'Local shipping options' })}</p>
               </div>
               <div className="rounded-md border border-border p-3">
                 <ShieldCheck className="mb-2 h-5 w-5 text-accent" />
-                <p className="text-sm font-semibold">Protected order</p>
-                <p className="text-xs text-secondary">Warranty where listed</p>
+                <p className="text-sm font-semibold">{t('products.protectedOrder', { defaultValue: 'Protected order' })}</p>
+                <p className="text-xs text-secondary">{t('products.warrantyListed', { defaultValue: 'Warranty where listed' })}</p>
               </div>
             </div>
           </div>
 
           {product.specs.length > 0 && (
-            <div className="mt-4 rounded-lg border border-border bg-surface p-6">
-              <h2 className="mb-4 font-bold">Details</h2>
+            <div className="mt-4 rounded-lg border border-border bg-surface p-5 shadow-sm sm:p-6">
+              <h2 className="mb-4 font-bold">{t('products.details', { defaultValue: 'Details' })}</h2>
               <dl className="space-y-3">
                 {product.specs.map((spec) => (
                   <div key={spec.key} className="flex gap-4 text-sm">

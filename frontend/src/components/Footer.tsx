@@ -1,7 +1,16 @@
+import { useTranslation } from '../i18n/LocaleContext';
 import { Mail, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Footer() {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const accountLink = user ? '/dashboard' : '/login';
+  const accountLabel = user ? t('footer.account', { defaultValue: 'Dashboard' }) : t('footer.login', { defaultValue: 'Login' });
+  const secondaryAccountLink = user ? '/dashboard/orders' : '/register';
+  const secondaryAccountLabel = user ? t('footer.orders', { defaultValue: 'Orders' }) : t('footer.register', { defaultValue: 'Register' });
+
   return (
     <footer className="mt-12 border-t border-border bg-surface">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -11,32 +20,32 @@ export default function Footer() {
               <img src="/logo.png" alt="Dukan Logo" className="h-9 w-auto object-contain" />
               <span className="text-xl font-black tracking-tight">Dukan</span>
             </Link>
-            <p className="text-sm leading-6 text-secondary">Products, deals, delivery, checkout.</p>
+            <p className="text-sm leading-6 text-secondary">{t('footer.description', { defaultValue: 'Products, deals, delivery, checkout.' })}</p>
           </div>
 
           <div>
-            <h3 className="mb-3 text-sm font-bold uppercase tracking-wide">Shop</h3>
+            <h3 className="mb-3 text-sm font-bold uppercase tracking-wide">{t('footer.shopTitle', { defaultValue: 'Shop' })}</h3>
             <ul className="space-y-2 text-sm text-secondary">
-              <li><Link to="/products" className="hover:text-primary">All products</Link></li>
-              <li><Link to="/products?category=mobiles" className="hover:text-primary">Mobiles</Link></li>
-              <li><Link to="/products?category=fashion" className="hover:text-primary">Fashion</Link></li>
-              <li><Link to="/products?category=groceries" className="hover:text-primary">Groceries</Link></li>
+              <li><Link to="/products" className="hover:text-primary">{t('footer.allProducts', { defaultValue: 'All products' })}</Link></li>
+              <li><Link to="/products?category=mobiles" className="hover:text-primary">{t('footer.mobiles', { defaultValue: 'Mobiles' })}</Link></li>
+              <li><Link to="/products?category=fashion" className="hover:text-primary">{t('footer.fashion', { defaultValue: 'Fashion' })}</Link></li>
+              <li><Link to="/products?category=groceries" className="hover:text-primary">{t('footer.groceries', { defaultValue: 'Groceries' })}</Link></li>
             </ul>
           </div>
 
           <div>
-            <h3 className="mb-3 text-sm font-bold uppercase tracking-wide">Orders</h3>
+            <h3 className="mb-3 text-sm font-bold uppercase tracking-wide">{t('footer.ordersTitle', { defaultValue: 'Orders' })}</h3>
             <ul className="space-y-2 text-sm text-secondary">
-              <li><Link to="/cart" className="hover:text-primary">Cart</Link></li>
-              <li><Link to="/login" className="hover:text-primary">Login</Link></li>
-              <li><Link to="/register" className="hover:text-primary">Register</Link></li>
+              <li><Link to="/cart" className="hover:text-primary">{t('footer.cart', { defaultValue: 'Cart' })}</Link></li>
+              <li><Link to={accountLink} className="hover:text-primary">{accountLabel}</Link></li>
+              <li><Link to={secondaryAccountLink} className="hover:text-primary">{secondaryAccountLabel}</Link></li>
             </ul>
           </div>
 
           <div>
-            <h3 className="mb-3 text-sm font-bold uppercase tracking-wide">Contact</h3>
+            <h3 className="mb-3 text-sm font-bold uppercase tracking-wide">{t('footer.contactTitle', { defaultValue: 'Contact' })}</h3>
             <ul className="space-y-3 text-sm text-secondary">
-              <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-accent" /> Kathmandu, Nepal</li>
+              <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-accent" /> {t('footer.location', { defaultValue: 'Kathmandu, Nepal' })}</li>
               <li className="flex items-center gap-2">
                 <svg
                   viewBox="0 0 24 24"
@@ -52,13 +61,13 @@ export default function Footer() {
                   rel="noreferrer"
                   className="hover:text-primary"
                 >
-                  github.com/rudra-buildlab
+                  {t('footer.github', { defaultValue: 'github.com/rudra-buildlab' })}
                 </a>
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-accent" />
                 <a href="mailto:teamrudra.dev@gmail.com" className="hover:text-primary">
-                  teamrudra.dev@gmail.com
+                  {t('footer.email', { defaultValue: 'teamrudra.dev@gmail.com' })}
                 </a>
               </li>
             </ul>

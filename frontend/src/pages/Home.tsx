@@ -4,18 +4,23 @@ import { ArrowRight, BadgePercent, Truck, ShieldCheck, RefreshCw, Flame } from '
 import { motion } from 'framer-motion';
 import ProductCard from '../components/ProductCard';
 import { API, formatPrice, price, productImage } from '../lib/products';
+import { getCategoryIcon } from '../lib/categoryIcons';
+import { categoryDescription, categoryName } from '../lib/categoryText';
 import type { CategoryType, ProductType } from '../lib/products';
+import { useTranslation } from '../i18n/LocaleContext';
 
-const quickLinks = ['Mobiles', 'Fashion', 'Groceries', 'Gaming', 'Appliances', 'Books'];
-const trustBadges = [
-  { Icon: Truck, title: 'Fast local delivery', copy: 'COD, eSewa, Khalti' },
-  { Icon: BadgePercent, title: 'Daily deals', copy: 'Different picks every load' },
-  { Icon: ShieldCheck, title: 'Checked products', copy: 'Warranty where available' },
-];
+const quickLinks = ['mobiles', 'fashion', 'groceries', 'gaming', 'appliances', 'books'];
 
 export default function Home() {
+  const { t } = useTranslation();
   const [products, setProducts] = useState<ProductType[]>([]);
   const [categories, setCategories] = useState<CategoryType[]>([]);
+
+  const trustBadges = [
+    { Icon: Truck, title: t('home.badgeFastDelivery', { defaultValue: 'Fast local delivery' }), copy: t('home.badgeFastCopy', { defaultValue: 'COD, eSewa, Khalti' }) },
+    { Icon: BadgePercent, title: t('home.badgeDailyDeals', { defaultValue: 'Daily deals' }), copy: t('home.badgeDailyCopy', { defaultValue: 'Different picks every load' }) },
+    { Icon: ShieldCheck, title: t('home.badgeChecked', { defaultValue: 'Checked products' }), copy: t('home.badgeCheckedCopy', { defaultValue: 'Warranty where available' }) },
+  ];
 
   useEffect(() => {
     fetch(`${API}/items/?random=true`)
@@ -42,37 +47,37 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             className="rounded-lg border border-border bg-surface p-5 text-primary shadow-sm sm:p-6"
           >
-            <div className="mb-6 flex flex-wrap gap-2">
-              {quickLinks.map((label) => (
+            <div className="mb-5 flex gap-2 overflow-x-auto pb-1 sm:mb-6 sm:flex-wrap sm:overflow-visible sm:pb-0">
+              {quickLinks.map((slug) => (
                 <Link
-                  key={label}
-                  to={`/products?category=${label.toLowerCase().replaceAll(' ', '-')}`}
-                  className="rounded-full border border-border bg-muted px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:border-accent hover:bg-accent hover:text-background"
+                  key={slug}
+                  to={`/products?category=${slug}`}
+                  className="shrink-0 rounded-full border border-border bg-muted px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:border-accent hover:bg-accent hover:text-background"
                 >
-                  {label}
+                  {categoryName(t, slug, slug)}
                 </Link>
               ))}
             </div>
 
             <p className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-accent">
               <Flame className="h-4 w-4" />
-              Flash picks
+              {t('home.flashPicks', { defaultValue: 'Flash picks' })}
             </p>
-            <h1 className="max-w-2xl text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
-              Deals first. Products everywhere.
+            <h1 className="max-w-2xl text-2xl font-black tracking-tight sm:text-4xl lg:text-5xl">
+              {t('home.heroTitle', { defaultValue: 'Deals first. Products everywhere.' })}
             </h1>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 to="/products"
                 className="inline-flex items-center gap-2 rounded-md bg-accent px-5 py-3 font-semibold text-background transition-colors hover:bg-orange-600"
               >
-                Shop now <ArrowRight className="h-4 w-4" />
+                {t('home.shopNow', { defaultValue: 'Shop now' })} <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 to="/products?random=true"
                 className="inline-flex items-center gap-2 rounded-md border border-border px-5 py-3 font-semibold text-primary transition-colors hover:border-accent hover:bg-surface"
               >
-                Random feed <RefreshCw className="h-4 w-4" />
+                {t('home.randomFeed', { defaultValue: 'Random feed' })} <RefreshCw className="h-4 w-4" />
               </Link>
             </div>
           </motion.div>
@@ -89,10 +94,10 @@ export default function Home() {
                 </div>
                 <div className="pt-4">
                   <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-                    <span className="font-semibold text-accent">{heroProduct.tag || heroProduct.category.name}</span>
-                    <span className="text-secondary">{heroProduct.stock} left</span>
+                    <span className="font-semibold text-accent">{heroProduct.tag || categoryName(t, heroProduct.category.slug, heroProduct.category.name)}</span>
+                    <span className="text-secondary">{heroProduct.stock} {t('home.leftInStock', { defaultValue: 'left' })}</span>
                   </div>
-                  <h2 className="line-clamp-1 text-2xl font-bold">{heroProduct.name}</h2>
+                  <h2 className="line-clamp-1 text-xl font-bold sm:text-2xl">{heroProduct.name}</h2>
                   <div className="mt-2 flex items-baseline gap-3">
                     <span className="text-2xl font-black text-primary">{formatPrice(price(heroProduct))}</span>
                     {heroProduct.discount_price && (
@@ -102,7 +107,7 @@ export default function Home() {
                 </div>
               </Link>
             ) : (
-              <div className="flex aspect-[5/4] items-center justify-center rounded-md bg-muted text-secondary">Loading products</div>
+              <div className="flex aspect-[5/4] items-center justify-center rounded-md bg-muted text-secondary">{t('home.loadingProducts', { defaultValue: 'Loading products' })}</div>
             )}
           </div>
         </div>
@@ -127,11 +132,11 @@ export default function Home() {
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-5 flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-black tracking-tight">Shop by category</h2>
-            <p className="text-sm text-secondary">All product types in one place.</p>
+            <h2 className="text-2xl font-black tracking-tight">{t('home.shopByCategory', { defaultValue: 'Shop by category' })}</h2>
+            <p className="text-sm text-secondary">{t('home.categorySubtitle', { defaultValue: 'All product types in one place.' })}</p>
           </div>
           <Link to="/products" className="hidden text-sm font-semibold text-accent hover:underline sm:block">
-            View all
+            {t('home.viewAll', { defaultValue: 'View all' })}
           </Link>
         </div>
 
@@ -142,8 +147,18 @@ export default function Home() {
               to={`/products?category=${category.slug}`}
               className="rounded-lg border border-border bg-surface p-4 transition-colors hover:border-accent hover:bg-muted"
             >
-              <p className="font-semibold text-primary">{category.name}</p>
-              <p className="mt-1 line-clamp-2 text-xs text-secondary">{category.description}</p>
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-primary">{categoryName(t, category.slug, category.name)}</p>
+                  <p className="mt-1 line-clamp-2 text-xs text-secondary">{categoryDescription(t, category.slug, category.description || '')}</p>
+                </div>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-background text-accent">
+                  {(() => {
+                    const Icon = getCategoryIcon(category.slug);
+                    return <Icon className="h-5 w-5" aria-hidden="true" />;
+                  })()}
+                </span>
+              </div>
             </Link>
           ))}
         </div>
@@ -152,9 +167,9 @@ export default function Home() {
       {flashDeals.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
           <div className="mb-5 flex items-center justify-between gap-4">
-            <h2 className="text-2xl font-black tracking-tight">Flash deals</h2>
+            <h2 className="text-2xl font-black tracking-tight">{t('home.flashDeals', { defaultValue: 'Flash deals' })}</h2>
             <Link to="/products" className="text-sm font-semibold text-accent hover:underline">
-              More deals
+              {t('home.moreDeals', { defaultValue: 'More deals' })}
             </Link>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -168,8 +183,8 @@ export default function Home() {
       {dailyPicks.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
           <div className="mb-5 flex items-center justify-between gap-4">
-            <h2 className="text-2xl font-black tracking-tight">Just for today</h2>
-            <span className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-secondary">Randomized from DB</span>
+            <h2 className="text-2xl font-black tracking-tight">{t('home.justForToday', { defaultValue: 'Just for today' })}</h2>
+            <span className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-secondary">{t('home.randomized', { defaultValue: 'Randomized from DB' })}</span>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {dailyPicks.map((product) => (

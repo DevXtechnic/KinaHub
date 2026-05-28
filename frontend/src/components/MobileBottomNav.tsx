@@ -2,8 +2,10 @@ import { NavLink } from 'react-router-dom';
 import { Home, Search, ShoppingBag, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useTranslation } from '../i18n/LocaleContext';
 
 export default function MobileBottomNav() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { totalCount } = useCart();
   const accountPath = user ? '/dashboard' : '/login';
@@ -18,11 +20,11 @@ export default function MobileBottomNav() {
       <div className="mx-auto grid max-w-md grid-cols-4">
         <NavLink to="/" className={itemClass}>
           <Home className="h-5 w-5" />
-          Home
+          {t('nav.home', { defaultValue: 'Home' })}
         </NavLink>
         <NavLink to="/products" className={itemClass}>
           <Search className="h-5 w-5" />
-          Shop
+          {t('nav.shop', { defaultValue: 'Shop' })}
         </NavLink>
         <NavLink to="/cart" className={itemClass}>
           <span className="relative">
@@ -33,11 +35,11 @@ export default function MobileBottomNav() {
               </span>
             )}
           </span>
-          Cart
+          {t('nav.cart', { defaultValue: 'Cart' })}
         </NavLink>
         <NavLink to={accountPath} className={itemClass}>
           <User className="h-5 w-5" />
-          Account
+          {t('nav.account', { defaultValue: 'Account' })}
         </NavLink>
       </div>
     </nav>

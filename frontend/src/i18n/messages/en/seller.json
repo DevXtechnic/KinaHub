@@ -1,0 +1,20 @@
+{
+  "title": "Product management",
+  "copy": "Create products, track stock, and keep your catalog ready for checkout.",
+  "addProduct": "Add product",
+  "productName": "Product name",
+  "category": "Category",
+  "price": "Price",
+  "discountPrice": "Discount price",
+  "stock": "Stock",
+  "imageUrl": "Image URL",
+  "description": "Description",
+  "saveProduct": "Save product",
+  "catalog": "Catalog",
+  "product": "Product",
+  "status": "Status",
+  "active": "Active",
+  "inactive": "Inactive",
+  "couldNotCreate": "Could not create product",
+  "couldNotLoad": "Could not load seller data"
+}

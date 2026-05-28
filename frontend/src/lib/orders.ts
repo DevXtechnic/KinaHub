@@ -1,4 +1,5 @@
 import type { ProductType } from './products';
+import { getCurrentLocale } from '../i18n/localeStore';
 
 export interface OrderItemType {
   id: number;
@@ -19,6 +20,10 @@ export interface OrderType {
   customer_email: string;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   payment_method: string;
+  delivery_method: string;
+  delivery_fee: string;
+  promo_code: string;
+  discount_amount: string;
   total_price: string;
   shipping_address: string;
   customer_note: string;
@@ -31,14 +36,63 @@ export interface OrderType {
 export const orderStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'] as const;
 
 export function paymentLabel(method: string) {
-  const labels: Record<string, string> = {
-    cod: 'COD',
-    esewa: 'eSewa',
-    khalti: 'Khalti',
-    fonepay_qr: 'Fonepay QR',
-    card: 'Card payments',
-    ime_pay: 'IME Pay',
+  const locale = getCurrentLocale();
+  const labels: Record<string, Record<string, string>> = {
+    en: {
+      cod: 'COD',
+      esewa: 'eSewa',
+      khalti: 'Khalti',
+      fonepay_qr: 'Fonepay QR',
+      card: 'Card payments',
+      ime_pay: 'IME Pay',
+    },
+    np: {
+      cod: 'COD',
+      esewa: 'eSewa',
+      khalti: 'Khalti',
+      fonepay_qr: 'Fonepay QR',
+      card: 'कार्ड भुक्तानी',
+      ime_pay: 'IME Pay',
+    },
   };
 
-  return labels[method] || method;
+  return labels[locale][method] || labels.en[method] || method;
+}
+
+export function deliveryLabel(method: string) {
+  const locale = getCurrentLocale();
+  const labels: Record<string, Record<string, string>> = {
+    en: {
+      standard: 'Standard delivery',
+      overnight: 'Overnight delivery',
+    },
+    np: {
+      standard: 'मानक डेलिभरी',
+      overnight: 'अर्को दिन डेलिभरी',
+    },
+  };
+
+  return labels[locale][method] || labels.en[method] || method;
+}
+
+export function orderStatusLabel(status: string) {
+  const locale = getCurrentLocale();
+  const labels: Record<string, Record<string, string>> = {
+    en: {
+      pending: 'Pending',
+      processing: 'Processing',
+      shipped: 'Shipped',
+      delivered: 'Delivered',
+      cancelled: 'Cancelled',
+    },
+    np: {
+      pending: 'पेन्डिङ',
+      processing: 'प्रोसेस हुँदैछ',
+      shipped: 'पठाइयो',
+      delivered: 'डेलिभर भयो',
+      cancelled: 'रद्द गरियो',
+    },
+  };
+
+  return labels[locale][status] || labels.en[status] || status;
 }

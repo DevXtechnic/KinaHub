@@ -2,31 +2,34 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import { BarChart3, Bell, ClipboardList, LayoutDashboard, Package, Settings, Store, Ticket, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from '../components/ThemeToggle';
-
-const roleNav = {
-  customer: [
-    { to: '/dashboard', label: 'Account', icon: LayoutDashboard },
-    { to: '/dashboard/orders', label: 'Orders', icon: ClipboardList },
-    { to: '/dashboard/tickets', label: 'Support', icon: Ticket },
-  ],
-  seller: [
-    { to: '/seller', label: 'Dashboard', icon: BarChart3 },
-    { to: '/seller/products', label: 'Products', icon: Package },
-    { to: '/seller/orders', label: 'Orders', icon: ClipboardList },
-    { to: '/seller/customers', label: 'Customers', icon: Users },
-  ],
-  admin: [
-    { to: '/admin', label: 'Overview', icon: LayoutDashboard },
-    { to: '/admin/users', label: 'Users', icon: Users },
-    { to: '/admin/orders', label: 'Orders', icon: ClipboardList },
-    { to: '/admin/crm', label: 'CRM', icon: Bell },
-    { to: '/admin/settings', label: 'Settings', icon: Settings },
-  ],
-};
+import { useTranslation } from '../i18n/LocaleContext';
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const role = user?.effective_role || 'customer';
+
+  const roleNav = {
+    customer: [
+      { to: '/dashboard', label: t('dashboard.navAccount', { defaultValue: 'Account' }), icon: LayoutDashboard },
+      { to: '/dashboard/orders', label: t('dashboard.navOrders', { defaultValue: 'Orders' }), icon: ClipboardList },
+      { to: '/dashboard/tickets', label: t('dashboard.navSupport', { defaultValue: 'Support' }), icon: Ticket },
+    ],
+    seller: [
+      { to: '/seller', label: t('dashboard.navDashboard', { defaultValue: 'Dashboard' }), icon: BarChart3 },
+      { to: '/seller/products', label: t('dashboard.navProducts', { defaultValue: 'Products' }), icon: Package },
+      { to: '/seller/orders', label: t('dashboard.navOrders', { defaultValue: 'Orders' }), icon: ClipboardList },
+      { to: '/seller/customers', label: t('dashboard.navCustomers', { defaultValue: 'Customers' }), icon: Users },
+    ],
+    admin: [
+      { to: '/admin', label: t('dashboard.navOverview', { defaultValue: 'Overview' }), icon: LayoutDashboard },
+      { to: '/admin/users', label: t('dashboard.navUsers', { defaultValue: 'Users' }), icon: Users },
+      { to: '/admin/orders', label: t('dashboard.navOrders', { defaultValue: 'Orders' }), icon: ClipboardList },
+      { to: '/admin/crm', label: t('dashboard.navCrm', { defaultValue: 'CRM' }), icon: Bell },
+      { to: '/admin/settings', label: t('dashboard.navSettings', { defaultValue: 'Settings' }), icon: Settings },
+    ],
+  };
+
   const nav = roleNav[role];
 
   return (
@@ -41,7 +44,7 @@ export default function DashboardLayout() {
             <span className="hidden text-secondary sm:inline">{user?.email}</span>
             <ThemeToggle />
             <button type="button" onClick={logout} className="font-semibold text-accent">
-              Logout
+              {t('dashboard.logout', { defaultValue: 'Logout' })}
             </button>
           </div>
         </div>
@@ -51,7 +54,7 @@ export default function DashboardLayout() {
         <aside className="rounded-lg border border-border bg-surface p-3 lg:sticky lg:top-20 lg:h-fit">
           <div className="mb-3 flex items-center gap-2 px-3 py-2 text-sm font-bold uppercase text-secondary">
             <Store className="h-4 w-4" />
-            {role}
+            {t(`dashboard.role${role.charAt(0).toUpperCase() + role.slice(1)}`, { defaultValue: role })}
           </div>
           <nav className="grid gap-1">
             {nav.map((item) => {

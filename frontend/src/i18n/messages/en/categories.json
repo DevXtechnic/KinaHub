@@ -1,0 +1,54 @@
+{
+  "mobiles": {
+    "name": "Mobiles",
+    "description": "Phones, chargers, cases, and wearable tech"
+  },
+  "laptops": {
+    "name": "Laptops",
+    "description": "Work, school, creator, and gaming machines"
+  },
+  "accessories": {
+    "name": "Accessories",
+    "description": "Keyboards, storage, chargers, hubs, and desk gear"
+  },
+  "audio": {
+    "name": "Audio",
+    "description": "Earbuds, headphones, speakers, and sound gear"
+  },
+  "fashion": {
+    "name": "Fashion",
+    "description": "Everyday wear, sneakers, bags, and accessories"
+  },
+  "home": {
+    "name": "Home",
+    "description": "Kitchen, room, cleaning, and living essentials"
+  },
+  "beauty": {
+    "name": "Beauty",
+    "description": "Skin care, grooming, and personal care"
+  },
+  "groceries": {
+    "name": "Groceries",
+    "description": "Daily household food and pantry items"
+  },
+  "gaming": {
+    "name": "Gaming",
+    "description": "Consoles, peripherals, and setup gear"
+  },
+  "networking": {
+    "name": "Networking",
+    "description": "Routers, mesh WiFi, switches, and connectivity gear"
+  },
+  "appliances": {
+    "name": "Appliances",
+    "description": "Useful electronics for home and hostel rooms"
+  },
+  "sports": {
+    "name": "Sports",
+    "description": "Fitness, outdoor, and training products"
+  },
+  "books": {
+    "name": "Books",
+    "description": "Study, fiction, business, and stationery"
+  }
+}

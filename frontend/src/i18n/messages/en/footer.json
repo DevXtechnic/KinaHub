@@ -1,0 +1,16 @@
+{
+  "description": "Products, deals, delivery, checkout.",
+  "shopTitle": "Shop",
+  "ordersTitle": "Orders",
+  "contactTitle": "Contact",
+  "allProducts": "All products",
+  "mobiles": "Mobiles",
+  "fashion": "Fashion",
+  "groceries": "Groceries",
+  "cart": "Cart",
+  "login": "Login",
+  "register": "Register",
+  "location": "Kathmandu, Nepal",
+  "github": "github.com/rudra-buildlab",
+  "email": "teamrudra.dev@gmail.com"
+}

@@ -1,5 +1,7 @@
 import { API_BASE } from './api';
 
+import { getCurrentLocale } from '../i18n/localeStore';
+
 export const API = `${API_BASE}/products`;
 
 export interface ProductImageType {
@@ -61,5 +63,21 @@ export function price(product: ProductType) {
 }
 
 export function formatPrice(value: number | string) {
-  return `Rs. ${Number(value).toLocaleString()}`;
+  const locale = getCurrentLocale() === 'np' ? 'ne-NP' : 'en-US';
+  const prefix = getCurrentLocale() === 'np' ? 'रु' : 'Rs.';
+  return `${prefix} ${Number(value).toLocaleString(locale)}`;
+}
+
+export function formatNumber(value: number | string) {
+  const locale = getCurrentLocale() === 'np' ? 'ne-NP' : 'en-US';
+  return Number(value).toLocaleString(locale);
+}
+
+export function formatDate(value: string, options: Intl.DateTimeFormatOptions = {}) {
+  const locale = getCurrentLocale() === 'np' ? 'ne-NP' : 'en-US';
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: options.timeStyle,
+    ...options,
+  }).format(new Date(value));
 }

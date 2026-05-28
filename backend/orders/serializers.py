@@ -1,9 +1,22 @@
+from decimal import Decimal, ROUND_HALF_UP
+
 from django.db import transaction
 from rest_framework import serializers
 from crm.models import ActivityLog, Notification
 from products.models import Product
 from products.serializers import ProductSerializer
 from .models import Order, OrderItem, Payment
+
+
+DELIVERY_FEES = {
+    Order.DELIVERY_STANDARD: Decimal("150.00"),
+    Order.DELIVERY_OVERNIGHT: Decimal("350.00"),
+}
+
+PROMO_CODES = {
+    "aura10": Decimal("10"),
+    "balensarkar12": Decimal("12"),
+}
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -27,14 +40,44 @@ class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)
     payment = PaymentSerializer(read_only=True)
     customer_email = serializers.EmailField(source="user.email", read_only=True)
+    promo_code = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Order
         fields = [
-            "id", "customer_email", "status", "payment_method", "total_price",
-            "shipping_address", "customer_note", "items", "payment", "created_at", "updated_at",
+            "id",
+            "customer_email",
+            "status",
+            "payment_method",
+            "delivery_method",
+            "delivery_fee",
+            "promo_code",
+            "discount_amount",
+            "total_price",
+            "shipping_address",
+            "customer_note",
+            "items",
+            "payment",
+            "created_at",
+            "updated_at",
         ]
-        read_only_fields = ["id", "customer_email", "status", "total_price", "payment", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "customer_email",
+            "status",
+            "delivery_fee",
+            "discount_amount",
+            "total_price",
+            "payment",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate_promo_code(self, value):
+        code = (value or "").strip().lower()
+        if code and code not in PROMO_CODES:
+            raise serializers.ValidationError("Promo code is not valid.")
+        return code
 
     def validate_items(self, items):
         if not items:
@@ -52,8 +95,25 @@ class OrderSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         items_data = validated_data.pop("items")
         user = self.context["request"].user
-        total = sum(item["product"].current_price * item["quantity"] for item in items_data)
-        order = Order.objects.create(user=user, total_price=total, **validated_data)
+        promo_code = validated_data.get("promo_code", "").strip().lower()
+        delivery_method = validated_data.get("delivery_method", Order.DELIVERY_STANDARD)
+        delivery_fee = DELIVERY_FEES.get(delivery_method, DELIVERY_FEES[Order.DELIVERY_STANDARD])
+        subtotal = sum(
+            (item["product"].current_price * item["quantity"] for item in items_data),
+            Decimal("0"),
+        )
+        discount_rate = PROMO_CODES.get(promo_code, Decimal("0"))
+        discount_amount = (subtotal * discount_rate / Decimal("100")).quantize(
+            Decimal("0.01"),
+            rounding=ROUND_HALF_UP,
+        )
+        total = (subtotal + delivery_fee - discount_amount).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        validated_data["promo_code"] = promo_code
+        validated_data["delivery_fee"] = delivery_fee
+        validated_data["discount_amount"] = discount_amount
+        validated_data["total_price"] = total
+        order = Order.objects.create(user=user, **validated_data)
 
         order_items = []
         for item in items_data:

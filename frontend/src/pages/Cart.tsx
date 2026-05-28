@@ -3,24 +3,27 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, ShoppingBag, ArrowRight, Minus, Plus, Box } from 'lucide-react';
 import { price, productImage, formatPrice } from '../lib/products';
+import { useTranslation } from '../i18n/LocaleContext';
+import { categoryName } from '../lib/categoryText';
 
 export default function Cart() {
   const { items, totalCount, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   if (items.length === 0) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-32 text-center">
-        <div className="w-24 h-24 bg-surface border border-border rounded-full flex items-center justify-center mx-auto mb-6">
-          <ShoppingBag className="w-10 h-10 text-secondary" />
+      <div className="mx-auto max-w-3xl px-4 py-20 text-center sm:py-32">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-border bg-surface sm:h-24 sm:w-24">
+          <ShoppingBag className="h-8 w-8 text-secondary sm:h-10 sm:w-10" />
         </div>
-        <h2 className="text-2xl font-bold tracking-tight mb-3">Your cart is empty</h2>
-        <p className="text-secondary mb-8">Browse products and add what you need.</p>
+        <h2 className="mb-3 text-xl font-bold tracking-tight sm:text-2xl">{t('cart.emptyTitle', { defaultValue: 'Your cart is empty' })}</h2>
+        <p className="mb-8 text-secondary">{t('cart.emptyCopy', { defaultValue: 'Browse products and add what you need.' })}</p>
         <Link
           to="/products"
-          className="bg-accent text-background px-8 py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors inline-block"
+          className="inline-block rounded-lg bg-accent px-8 py-3 font-semibold text-background transition-colors hover:bg-orange-600"
         >
-          Browse Catalog
+          {t('cart.browseCatalog', { defaultValue: 'Browse Catalog' })}
         </Link>
       </div>
     );
@@ -29,23 +32,23 @@ export default function Cart() {
   const shipping = 150;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="flex items-center justify-between mb-10">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Cart <span className="text-secondary text-lg font-normal">({totalCount} {totalCount === 1 ? 'item' : 'items'})</span>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+      <div className="mb-8 flex items-start justify-between gap-4 sm:mb-10">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          {t('cart.title', { defaultValue: 'Cart' })} <span className="text-base font-normal text-secondary sm:text-lg">({totalCount} {totalCount === 1 ? t('cart.item', { defaultValue: 'item' }) : t('cart.items', { defaultValue: 'items' })})</span>
         </h1>
         <button
           type="button"
           onClick={clearCart}
           className="text-sm text-red-400 hover:text-red-300 font-medium transition-colors"
         >
-          Clear all
+          {t('cart.clearAll', { defaultValue: 'Clear all' })}
         </button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-12">
+      <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
         {/* Cart Items */}
-        <div className="lg:w-2/3 space-y-6">
+        <div className="space-y-4 lg:w-2/3 lg:space-y-6">
           <AnimatePresence initial={false}>
             {items.map(({ product, quantity }) => {
               const image = productImage(product);
@@ -59,26 +62,26 @@ export default function Cart() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20, height: 0, marginBottom: 0 }}
                   transition={{ duration: 0.25 }}
-                  className="bg-surface border border-border rounded-2xl p-6 flex flex-col md:flex-row gap-6 relative group overflow-hidden"
+                  className="group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-surface p-4 sm:p-5 md:flex-row md:gap-6 lg:p-6"
                 >
                   {/* Product Image */}
-                  <div className="w-24 h-24 md:w-32 md:h-32 bg-background border border-border rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-background sm:h-24 sm:w-24 md:h-32 md:w-32">
                     {image ? (
                       <img src={image} alt={product.name} className="h-full w-full object-cover" />
                     ) : (
-                      <Box className="w-10 h-10 text-secondary/30" />
+                      <Box className="h-8 w-8 text-secondary/30" />
                     )}
                   </div>
 
                   {/* Product Info */}
                   <div className="flex-1 flex flex-col">
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="mb-2 flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs text-accent uppercase tracking-wider font-bold mb-1">
+                        <p className="mb-1 text-xs font-bold uppercase tracking-wider text-accent">
                           {product.brand?.name || 'Dukan'}
                         </p>
-                        <h3 className="text-xl font-semibold">{product.name}</h3>
-                        <p className="text-sm text-secondary">{product.category?.name}</p>
+                        <h3 className="text-lg font-semibold sm:text-xl">{product.name}</h3>
+                        <p className="text-sm text-secondary">{product.category ? categoryName(t, product.category.slug, product.category.name) : ''}</p>
                       </div>
                       <button
                         type="button"
@@ -89,7 +92,7 @@ export default function Cart() {
                       </button>
                     </div>
 
-                    <div className="mt-auto flex items-end justify-between">
+                    <div className="mt-auto flex items-end justify-between gap-3">
                       <div className="flex items-center gap-1 bg-background border border-border rounded-lg p-1">
                         <button
                           type="button"
@@ -107,7 +110,7 @@ export default function Cart() {
                           <Plus className="w-4 h-4" />
                         </button>
                       </div>
-                      <span className="text-lg font-bold">{formatPrice(itemTotal)}</span>
+                      <span className="text-base font-bold sm:text-lg">{formatPrice(itemTotal)}</span>
                     </div>
                   </div>
                 </motion.div>
@@ -118,27 +121,27 @@ export default function Cart() {
 
         {/* Order Summary */}
         <div className="lg:w-1/3">
-          <div className="bg-surface border border-border rounded-2xl p-6 sticky top-28">
-            <h2 className="text-xl font-bold mb-6">Order Summary</h2>
+          <div className="sticky top-28 rounded-2xl border border-border bg-surface p-5 sm:p-6">
+            <h2 className="mb-6 text-xl font-bold">{t('cart.orderSummary', { defaultValue: 'Order summary' })}</h2>
 
             <div className="space-y-4 mb-6 text-sm">
               <div className="flex justify-between">
-                <span className="text-secondary">Subtotal</span>
+                <span className="text-secondary">{t('cart.subtotal', { defaultValue: 'Subtotal' })}</span>
                 <span className="font-medium">{formatPrice(totalPrice)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-secondary">Shipping estimate</span>
+                <span className="text-secondary">{t('cart.shippingEstimate', { defaultValue: 'Shipping estimate' })}</span>
                 <span className="font-medium">{formatPrice(shipping)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-secondary">Tax</span>
-                <span className="font-medium text-secondary">Calculated at checkout</span>
+                <span className="text-secondary">{t('cart.tax', { defaultValue: 'Tax' })}</span>
+                <span className="font-medium text-secondary">{t('cart.calculatedAtCheckout', { defaultValue: 'Calculated at checkout' })}</span>
               </div>
             </div>
 
             <div className="border-t border-border pt-4 mb-8">
               <div className="flex justify-between items-end">
-                <span className="font-bold">Total</span>
+                <span className="font-bold">{t('cart.total', { defaultValue: 'Total' })}</span>
                 <span className="text-2xl font-bold text-accent">{formatPrice(totalPrice + shipping)}</span>
               </div>
             </div>
@@ -148,10 +151,10 @@ export default function Cart() {
               onClick={() => navigate('/checkout')}
               className="w-full bg-accent text-background font-semibold py-4 rounded-xl hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 group"
             >
-              Proceed to Checkout <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </div>
-        </div>
+          {t('cart.proceedToCheckout', { defaultValue: 'Proceed to checkout' })} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        </button>
+      </div>
+    </div>
       </div>
     </div>
   );

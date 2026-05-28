@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { ShoppingBag, Star } from 'lucide-react';
 import { formatPrice, price, productImage } from '../lib/products';
 import type { ProductType } from '../lib/products';
+import { useTranslation } from '../i18n/LocaleContext';
+import { categoryName } from '../lib/categoryText';
 
 interface ProductCardProps {
   product: ProductType;
@@ -9,6 +11,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, compact = false }: ProductCardProps) {
+  const { t } = useTranslation();
   const image = productImage(product);
   const hasDiscount = Boolean(product.discount_price);
   const discountPercent = hasDiscount
@@ -27,7 +30,7 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
               loading="lazy"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-secondary">No image</div>
+            <div className="flex h-full w-full items-center justify-center text-secondary">{t('products.noImage', { defaultValue: 'No image' })}</div>
           )}
           {product.tag && (
             <span className="absolute left-3 top-3 rounded bg-accent px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-background">
@@ -43,7 +46,7 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
 
         <div className={`${compact ? 'p-3' : 'p-3 sm:p-4'} flex min-h-[132px] flex-col sm:min-h-[168px]`}>
           <div className="mb-2 flex items-center justify-between gap-3 text-xs text-secondary">
-            <span className="truncate uppercase tracking-wide">{product.category.name}</span>
+            <span className="truncate uppercase tracking-wide">{categoryName(t, product.category.slug, product.category.name)}</span>
             <span className="flex shrink-0 items-center gap-1">
               <Star className="h-3.5 w-3.5 fill-warning text-warning" />
               {Number(product.rating).toFixed(1)}

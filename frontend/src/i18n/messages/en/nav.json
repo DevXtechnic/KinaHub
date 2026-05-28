@@ -1,0 +1,17 @@
+{
+  "products": "Products",
+  "cart": "Cart",
+  "login": "Login",
+  "register": "Register",
+  "dashboard": "Dashboard",
+  "account": "Account",
+  "home": "Home",
+  "shop": "Shop",
+  "search": "Search products",
+  "categories": "Categories",
+  "brands": "Brands",
+  "brand": "Brand",
+  "openMenu": "Open menu",
+  "closeMenu": "Close menu",
+  "searchProducts": "Search products"
+}

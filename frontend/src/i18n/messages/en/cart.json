@@ -1,0 +1,23 @@
+{
+  "title": "Your cart",
+  "empty": "Your cart is empty.",
+  "browse": "Browse products",
+  "emptyTitle": "Your cart is empty",
+  "emptyCopy": "Browse products and add what you need.",
+  "browseCatalog": "Browse catalog",
+  "subtotal": "Subtotal",
+  "delivery": "Delivery",
+  "total": "Total",
+  "item": "item",
+  "items": "items",
+  "orderSummary": "Order summary",
+  "shippingEstimate": "Shipping estimate",
+  "tax": "Tax",
+  "calculatedAtCheckout": "Calculated at checkout",
+  "clearCart": "Clear cart",
+  "clearAll": "Clear all",
+  "checkout": "Proceed to checkout",
+  "proceedToCheckout": "Proceed to checkout",
+  "qty": "Qty",
+  "remove": "Remove"
+}
