@@ -24,6 +24,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         category = self.request.query_params.get('category')
         brand = self.request.query_params.get('brand')
+        store = self.request.query_params.get('store')
         featured = self.request.query_params.get('featured')
         query = self.request.query_params.get('q')
         sort = self.request.query_params.get('sort', '').lower().strip()
@@ -42,6 +43,8 @@ class ProductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(category__slug=category)
         if brand:
             queryset = queryset.filter(brand__slug=brand)
+        if store:
+            queryset = queryset.filter(store__slug=store)
         if featured:
             queryset = queryset.filter(is_featured=featured.lower() == 'true')
         if query:
@@ -49,7 +52,8 @@ class ProductViewSet(viewsets.ModelViewSet):
                 Q(name__icontains=query) |
                 Q(description__icontains=query) |
                 Q(category__name__icontains=query) |
-                Q(brand__name__icontains=query)
+                Q(brand__name__icontains=query) |
+                Q(store__name__icontains=query)
             )
 
         is_random = self.request.query_params.get('random', 'false').lower() == 'true'
@@ -117,65 +121,42 @@ class SearchSuggestionsView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        query = (request.query_params.get('q') or '').strip()
+        query = (request.query_params.get('q') or '').strip().lower()
         if len(query) < 2:
-            return Response({'query': query, 'categories': [], 'brands': [], 'products': []})
+            return Response({'suggestions': []})
 
-        category_matches = list(
-            Category.objects.filter(Q(name__icontains=query) | Q(description__icontains=query)).order_by('order', 'name')[:6]
-        )
-        brand_matches = list(Brand.objects.filter(name__icontains=query).order_by('name')[:6])
+        suggestions = []
 
-        products_qs = (
-            Product.objects.filter(
-                is_active=True
-            )
-            .filter(
-                Q(name__icontains=query)
-                | Q(description__icontains=query)
-                | Q(category__name__icontains=query)
-                | Q(brand__name__icontains=query)
-            )
-            .select_related('category', 'brand')
-            .prefetch_related('images')
-        )
+        # 1. Exact or partial category matches
+        categories = Category.objects.filter(name__icontains=query).values_list('name', flat=True)[:3]
+        for c in categories:
+            suggestions.append(c.lower())
 
-        seen_ids = set()
-        products = []
-        for product in products_qs.distinct().order_by('-is_featured', '-rating', '-created_at')[:8]:
-            if product.id in seen_ids:
-                continue
-            seen_ids.add(product.id)
-            primary_image = next((image.image_url for image in product.images.all() if image.image_url), '')
-            products.append({
-                'id': product.id,
-                'slug': product.slug,
-                'name': product.name,
-                'category': product.category.name,
-                'brand': product.brand.name if product.brand else '',
-                'image': primary_image,
-                'href': f'/product/{product.slug}',
-            })
+        # 2. Products matching query
+        products = Product.objects.filter(
+            is_active=True
+        ).filter(
+            Q(name__icontains=query) | Q(category__name__icontains=query) | Q(brand__name__icontains=query)
+        ).select_related('category', 'brand')[:20]
 
-        categories = [
-            {
-                'id': category.id,
-                'slug': category.slug,
-                'name': category.name,
-                'description': category.description,
-                'href': f'/products?category={category.slug}',
-            }
-            for category in category_matches
-        ]
+        for p in products:
+            # Suggest the product name itself
+            if query in p.name.lower():
+                suggestions.append(p.name.lower())
 
-        brands = [
-            {
-                'id': brand.id,
-                'slug': brand.slug,
-                'name': brand.name,
-                'href': f'/products?brand={brand.slug}',
-            }
-            for brand in brand_matches
-        ]
+            # Suggest category + brand
+            if p.brand:
+                cat_brand = f"{p.category.name.lower()} {p.brand.name.lower()}"
+                if query in cat_brand or query in p.category.name.lower():
+                    suggestions.append(cat_brand)
 
-        return Response({'query': query, 'categories': categories, 'brands': brands, 'products': products})
+        # Deduplicate and keep order
+        seen = set()
+        unique_suggestions = []
+        for s in suggestions:
+            if s not in seen:
+                seen.add(s)
+                unique_suggestions.append(s)
+
+        # Return top 8
+        return Response({'suggestions': unique_suggestions[:8]})

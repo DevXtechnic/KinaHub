@@ -54,6 +54,23 @@ export interface ProductType {
   images: ProductImageType[];
 }
 
+export interface StoreType {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  logo_url: string;
+  banner_url: string;
+  address: string;
+  area: string;
+  map_url: string;
+  support_email: string;
+  support_phone: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export function productImage(product: ProductType) {
   return product.images.find((image) => image.is_primary)?.image_url || product.images[0]?.image_url || '';
 }

@@ -7,6 +7,7 @@ class StoreSerializer(serializers.ModelSerializer):
         model = Store
         fields = [
             "id", "name", "slug", "description", "logo_url", "banner_url",
+            "address", "area", "map_url",
             "support_email", "support_phone", "is_active", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "slug", "created_at", "updated_at"]

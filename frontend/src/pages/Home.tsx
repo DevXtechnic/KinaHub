@@ -17,9 +17,9 @@ export default function Home() {
   const [categories, setCategories] = useState<CategoryType[]>([]);
 
   const trustBadges = [
-    { Icon: Truck, title: t('home.badgeFastDelivery', { defaultValue: 'Fast local delivery' }), copy: t('home.badgeFastCopy', { defaultValue: 'COD, eSewa, Khalti' }) },
-    { Icon: BadgePercent, title: t('home.badgeDailyDeals', { defaultValue: 'Daily deals' }), copy: t('home.badgeDailyCopy', { defaultValue: 'Different picks every load' }) },
-    { Icon: ShieldCheck, title: t('home.badgeChecked', { defaultValue: 'Checked products' }), copy: t('home.badgeCheckedCopy', { defaultValue: 'Warranty where available' }) },
+    { Icon: Truck, title: t('home.badgeFastDelivery', { defaultValue: 'Fast local delivery' }), copy: t('home.badgeFastCopy', { defaultValue: 'From nearby seller stores' }) },
+    { Icon: BadgePercent, title: t('home.badgeDailyDeals', { defaultValue: 'Shop-owned products' }), copy: t('home.badgeDailyCopy', { defaultValue: 'Every item belongs to a store' }) },
+    { Icon: ShieldCheck, title: t('home.badgeChecked', { defaultValue: 'Seller CRM included' }), copy: t('home.badgeCheckedCopy', { defaultValue: 'Stores manage catalog and orders' }) },
   ];
 
   useEffect(() => {
@@ -98,6 +98,11 @@ export default function Home() {
                     <span className="text-secondary">{heroProduct.stock} {t('home.leftInStock', { defaultValue: 'left' })}</span>
                   </div>
                   <h2 className="line-clamp-1 text-xl font-bold sm:text-2xl">{heroProduct.name}</h2>
+                  {heroProduct.store?.name && (
+                    <p className="mt-1 text-sm font-medium text-secondary">
+                      {t('products.soldBy', { defaultValue: 'Sold by' })} {heroProduct.store.name}
+                    </p>
+                  )}
                   <div className="mt-2 flex items-baseline gap-3">
                     <span className="text-2xl font-black text-primary">{formatPrice(price(heroProduct))}</span>
                     {heroProduct.discount_price && (

@@ -49,5 +49,9 @@
   "addToCart": "कार्टमा थप्नुहोस्",
   "noProducts": "उत्पादन भेटिएन",
   "tryAnother": "अर्को क्याटेगरी वा खोज प्रयोग गर्नुहोस्।",
-  "filter": "फिल्टर"
+  "filter": "फिल्टर",
+  "soldBy": "बेच्ने पसल",
+  "sellerStore": "Seller store",
+  "platformDelivery": "Dukan बाट order, यो local shop ले fulfill गर्छ।",
+  "localShopProduct": "स्थानीय पसलको उत्पादन"
 }

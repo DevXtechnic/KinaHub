@@ -15,6 +15,14 @@ class IsSellerOrAdmin(permissions.BasePermission):
         return bool(user and user.is_authenticated and (user.effective_role in ["seller", "admin"]))
 
 
+class StorePermission(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        user = request.user
+        return bool(user and user.is_authenticated and (user.effective_role in ["seller", "admin"]))
+
+
 class SellerProfileViewSet(viewsets.ModelViewSet):
     serializer_class = SellerProfileSerializer
     permission_classes = [IsSellerOrAdmin]
@@ -61,12 +69,15 @@ class SellerProfileViewSet(viewsets.ModelViewSet):
 
 class StoreViewSet(viewsets.ModelViewSet):
     serializer_class = StoreSerializer
-    permission_classes = [IsSellerOrAdmin]
+    permission_classes = [StorePermission]
+    lookup_field = "slug"
 
     def get_queryset(self):
-        queryset = Store.objects.select_related("seller", "seller__user")
-        if self.request.user.effective_role == "admin":
+        queryset = Store.objects.filter(is_active=True).select_related("seller", "seller__user")
+        if self.request.method in permissions.SAFE_METHODS:
             return queryset
+        if self.request.user.effective_role == "admin":
+            return Store.objects.select_related("seller", "seller__user")
         return queryset.filter(seller__user=self.request.user)
 
     def perform_create(self, serializer):

@@ -73,19 +73,87 @@ seller_user.set_password("seller123")
 seller_user.save()
 seller_profile, _ = SellerProfile.objects.update_or_create(
     user=seller_user,
-    defaults={"business_name": "Dukan Demo Store", "phone": "9811111111", "status": "verified"},
+    defaults={"business_name": "Barat Kirana Pasal", "phone": "9811111111", "status": "verified"},
 )
-demo_store, _ = Store.objects.update_or_create(
+barat_store, _ = Store.objects.update_or_create(
     seller=seller_profile,
     defaults={
-        "name": "Dukan Demo Store",
-        "description": "General marketplace seller with demo products.",
+        "name": "Barat Kirana Pasal",
+        "slug": "barat-kirana-pasal",
+        "description": "Local general store from Pabitranagar, Gongabu for groceries, hygiene, and daily essentials.",
+        "address": "Pabitranagar, Gongabu, Kathmandu",
+        "area": "Pabitranagar, Gongabu",
+        "map_url": "https://www.google.com/maps/search/?api=1&query=Pabitranagar%20Gongabu%20Kathmandu",
         "support_email": "seller@dukan.local",
         "support_phone": "9811111111",
         "is_active": True,
     },
 )
 SellerRecord.objects.update_or_create(seller=seller_profile, defaults={"status": "verified", "risk_level": "normal"})
+
+def ensure_seller_store(email, password, business_name, phone, description):
+    user, _ = User.objects.update_or_create(
+        email=email,
+        defaults={
+            "username": email,
+            "first_name": business_name.split()[0],
+            "last_name": "Store",
+            "role": "seller",
+            "is_active": True,
+        },
+    )
+    user.set_password(password)
+    user.save()
+    profile, _ = SellerProfile.objects.update_or_create(
+        user=user,
+        defaults={"business_name": business_name, "phone": phone, "status": "verified"},
+    )
+    store, _ = Store.objects.update_or_create(
+        seller=profile,
+        defaults={
+            "name": business_name,
+            "slug": business_name.lower().replace(" ", "-"),
+            "description": description,
+            "address": {
+                "New Road Tech Suppliers": "New Road, Kathmandu",
+                "Thamel Style House": "Thamel, Kathmandu",
+                "Baneshwor Home Mart": "New Baneshwor, Kathmandu",
+            }.get(business_name, "Kathmandu, Nepal"),
+            "area": {
+                "New Road Tech Suppliers": "New Road",
+                "Thamel Style House": "Thamel",
+                "Baneshwor Home Mart": "New Baneshwor",
+            }.get(business_name, "Kathmandu"),
+            "map_url": "https://www.google.com/maps/search/?api=1&query=" + business_name.replace(" ", "%20") + "%20Kathmandu",
+            "support_email": email,
+            "support_phone": phone,
+            "is_active": True,
+        },
+    )
+    SellerRecord.objects.update_or_create(seller=profile, defaults={"status": "verified", "risk_level": "normal"})
+    return store
+
+tech_store = ensure_seller_store(
+    "newroad.tech@dukan.local",
+    "seller123",
+    "New Road Tech Suppliers",
+    "9822222222",
+    "Mobile, laptop, audio, gaming, and networking seller from New Road.",
+)
+fashion_store = ensure_seller_store(
+    "thamel.style@dukan.local",
+    "seller123",
+    "Thamel Style House",
+    "9833333333",
+    "Fashion, sports, books, and lifestyle shop from Thamel.",
+)
+home_store = ensure_seller_store(
+    "baneshwor.home@dukan.local",
+    "seller123",
+    "Baneshwor Home Mart",
+    "9844444444",
+    "Home, appliance, beauty, and household essentials seller from Baneshwor.",
+)
 Ticket.objects.get_or_create(
     customer=customer,
     seller=seller_profile,
@@ -131,6 +199,7 @@ brand_names = [
     "Xiaomi", "HP", "Ubiquiti", "TP-Link", "Corsair", "Anker", "SanDisk",
     "Keychron", "CalDigit", "Nike", "Puma", "The Ordinary", "CG", "Philips",
     "Goldstar", "Bhat-Bhateni", "Penguin", "Himalayan Java", "Dukan Basics",
+    "Wai Wai", "Dettol", "Fortune", "Aashirvaad",
 ]
 
 brands = {}
@@ -140,6 +209,66 @@ for name in brand_names:
 print(f"{len(brands)} brands ready")
 
 products_data = [
+    {
+        "name": "Wai Wai Chicken Noodles 30 Pack",
+        "category": "Groceries",
+        "brand": "Wai Wai",
+        "price": 750,
+        "discount_price": 699,
+        "stock": 60,
+        "rating": 4.7,
+        "tag": "Local",
+        "is_featured": True,
+        "store": "barat",
+        "image_url": "https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?auto=format&fit=crop&w=900&q=80",
+        "description": "Family pack of Wai Wai noodles stocked by Barat Kirana Pasal in Gongabu.",
+        "specifications": "Pack: 30 pcs\nArea: Pabitranagar, Gongabu\nDelivery: Same-day in nearby areas\nPayment: COD and wallets",
+    },
+    {
+        "name": "Dettol Original Soap 4 Pack",
+        "category": "Groceries",
+        "brand": "Dettol",
+        "price": 320,
+        "discount_price": 289,
+        "stock": 85,
+        "rating": 4.6,
+        "tag": "Daily",
+        "is_featured": True,
+        "store": "barat",
+        "image_url": "https://images.unsplash.com/photo-1607006483224-b2d3c5ca90d9?auto=format&fit=crop&w=900&q=80",
+        "description": "Daily hygiene soap pack from a local Gongabu general store.",
+        "specifications": "Pack: 4 bars\nUse: Bath and hygiene\nArea: Gongabu\nDelivery: Same-day",
+    },
+    {
+        "name": "Fortune Sunflower Oil 1L",
+        "category": "Groceries",
+        "brand": "Fortune",
+        "price": 330,
+        "discount_price": 310,
+        "stock": 45,
+        "rating": 4.4,
+        "tag": "Kitchen",
+        "is_featured": False,
+        "store": "barat",
+        "image_url": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=900&q=80",
+        "description": "Daily cooking oil available from Barat Kirana Pasal.",
+        "specifications": "Volume: 1L\nType: Sunflower oil\nArea: Pabitranagar\nDelivery: Standard or express",
+    },
+    {
+        "name": "Aashirvaad Atta 5kg",
+        "category": "Groceries",
+        "brand": "Aashirvaad",
+        "price": 625,
+        "discount_price": 589,
+        "stock": 38,
+        "rating": 4.5,
+        "tag": "Staple",
+        "is_featured": False,
+        "store": "barat",
+        "image_url": "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=900&q=80",
+        "description": "Wheat flour for daily home cooking from a local kirana store.",
+        "specifications": "Weight: 5kg\nType: Whole wheat\nArea: Gongabu\nPayment: COD available",
+    },
     {
         "name": "iPhone 16 Pro Max",
         "category": "Mobiles",
@@ -664,10 +793,32 @@ for row in products_data:
     category = cats[row["category"]]
     brand = brands[row["brand"]]
     image_url = row["image_url"]
+    store_map = {
+        "barat": barat_store,
+        "tech": tech_store,
+        "fashion": fashion_store,
+        "home": home_store,
+    }
+    category_store_map = {
+        "Mobiles": tech_store,
+        "Laptops": tech_store,
+        "Accessories": tech_store,
+        "Audio": tech_store,
+        "Gaming": tech_store,
+        "Networking": tech_store,
+        "Fashion": fashion_store,
+        "Sports": fashion_store,
+        "Books": fashion_store,
+        "Home": home_store,
+        "Beauty": home_store,
+        "Appliances": home_store,
+        "Groceries": barat_store,
+    }
+    store = store_map.get(row.get("store")) or category_store_map.get(row["category"], barat_store)
     product_defaults = {
         "category": category,
         "brand": brand,
-        "store": demo_store,
+        "store": store,
         "description": row["description"],
         "specifications": row["specifications"],
         "price": row["price"],

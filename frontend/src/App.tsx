@@ -20,6 +20,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import CRMPage from './pages/CRMPage';
 import OrdersPage from './pages/OrdersPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import StoreDetails from './pages/StoreDetails';
 
 import ScrollToTop from './components/ScrollToTop';
 
@@ -38,6 +39,7 @@ function App() {
                 <Route path="register" element={<Register />} />
                 <Route path="products" element={<Products />} />
                 <Route path="product/:slug" element={<ProductDetails />} />
+                <Route path="store/:slug" element={<StoreDetails />} />
                 <Route path="cart" element={<Cart />} />
                 <Route path="checkout" element={<Checkout />} />
               </Route>

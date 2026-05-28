@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Star } from 'lucide-react';
+import { ShoppingBag, Star, Store } from 'lucide-react';
 import { formatPrice, price, productImage } from '../lib/products';
 import type { ProductType } from '../lib/products';
 import { useTranslation } from '../i18n/LocaleContext';
@@ -56,6 +56,12 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
           <h3 className="line-clamp-2 min-h-[40px] text-[13px] font-semibold leading-5 text-primary sm:text-sm">
             {product.name}
           </h3>
+          {product.store?.name && (
+            <p className="mt-1 flex min-w-0 items-center gap-1.5 text-xs font-medium text-secondary">
+              <Store className="h-3.5 w-3.5 shrink-0 text-accent" aria-hidden="true" />
+              <span className="truncate">{t('products.soldBy', { defaultValue: 'Sold by' })} {product.store.name}</span>
+            </p>
+          )}
           <p className="mt-1 hidden text-xs leading-5 text-secondary sm:line-clamp-2">{product.description}</p>
 
           <div className="mt-auto flex items-end justify-between gap-2 pt-3 sm:gap-3 sm:pt-4">

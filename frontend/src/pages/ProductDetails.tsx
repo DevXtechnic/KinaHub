@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Minus, Plus, ShieldCheck, ShoppingBag, Star, Truck } from 'lucide-react';
+import { ArrowLeft, Check, Minus, Plus, ShieldCheck, ShoppingBag, Star, Store, Truck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API, formatPrice, price, productImage } from '../lib/products';
 import type { ProductType } from '../lib/products';
@@ -97,8 +97,20 @@ export default function ProductDetails() {
               </span>
             </div>
 
-            <p className="mb-2 text-sm text-secondary">{product.brand?.name || 'Dukan'}</p>
+            <p className="mb-2 text-sm text-secondary">{product.brand?.name || t('products.localShopProduct', { defaultValue: 'Local shop product' })}</p>
             <h1 className="text-xl font-black tracking-tight sm:text-3xl">{product.name}</h1>
+            {product.store?.name && (
+              <Link to={`/store/${product.store.slug}`} className="mt-4 flex items-start gap-3 rounded-md border border-border bg-background p-3 transition-colors hover:border-accent hover:bg-accent/5 cursor-pointer">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent">
+                  <Store className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary">{t('products.sellerStore', { defaultValue: 'Seller store' })}</p>
+                  <p className="truncate font-bold text-primary">{product.store.name}</p>
+                  <p className="text-xs text-secondary">{t('products.platformDelivery', { defaultValue: 'Ordered through Dukan, fulfilled by this local shop.' })}</p>
+                </div>
+              </Link>
+            )}
             <p className="mt-4 leading-7 text-secondary">{product.description}</p>
 
             <div className="mt-6 flex items-baseline gap-3">

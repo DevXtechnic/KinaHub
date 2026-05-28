@@ -1,50 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, Search, ShoppingBag, Store, Tag, User, X } from 'lucide-react';
+import { Menu, Search, ShoppingBag, User, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
-import { API } from '../lib/products';
+import { API_BASE } from '../lib/api';
 import { useTranslation } from '../i18n/LocaleContext';
-import { categoryDescription, categoryName } from '../lib/categoryText';
-
-interface SearchSuggestionCategory {
-  id: number;
-  slug: string;
-  name: string;
-  description: string;
-  href: string;
-}
-
-interface SearchSuggestionBrand {
-  id: number;
-  slug: string;
-  name: string;
-  href: string;
-}
-
-interface SearchSuggestionProduct {
-  id: number;
-  slug: string;
-  name: string;
-  category: string;
-  brand: string;
-  image: string;
-  href: string;
-}
-
-interface SearchSuggestionsResponse {
-  categories: SearchSuggestionCategory[];
-  brands: SearchSuggestionBrand[];
-  products: SearchSuggestionProduct[];
-}
 
 function SearchBar({ mobile = false, onSearch }: { mobile?: boolean; onSearch?: () => void }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
-  const [suggestions, setSuggestions] = useState<SearchSuggestionsResponse | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -52,18 +20,18 @@ function SearchBar({ mobile = false, onSearch }: { mobile?: boolean; onSearch?: 
   useEffect(() => {
     const handler = setTimeout(() => {
       if (search.trim().length > 1) {
-        fetch(`${API}/suggestions/?q=${encodeURIComponent(search.trim())}`)
+        fetch(`${API_BASE}/products/suggestions/?q=${encodeURIComponent(search.trim())}`)
           .then((res) => res.json())
-          .then((data: SearchSuggestionsResponse) => {
-            setSuggestions(data);
-            setIsOpen(Boolean(data.categories.length || data.brands.length || data.products.length));
+          .then((data: { suggestions: string[] }) => {
+            setSuggestions(data.suggestions || []);
+            setIsOpen(true);
           })
-          .catch(() => setSuggestions(null));
+          .catch(() => setSuggestions([]));
       } else {
-        setSuggestions(null);
+        setSuggestions([]);
         setIsOpen(false);
       }
-    }, 300);
+    }, 200);
     return () => clearTimeout(handler);
   }, [search]);
 
@@ -76,16 +44,43 @@ function SearchBar({ mobile = false, onSearch }: { mobile?: boolean; onSearch?: 
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [mobile]);
 
-  function submitSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!search.trim()) return;
-    navigate(`/products?q=${encodeURIComponent(search.trim())}`);
+  function submitSearch(event: FormEvent<HTMLFormElement> | string) {
+    if (typeof event !== 'string') event.preventDefault();
+    const query = typeof event === 'string' ? event : search;
+    if (!query.trim()) return;
+    
+    navigate(`/products?q=${encodeURIComponent(query.trim())}`);
     setIsOpen(false);
     if (mobile) setMobileExpanded(false);
     if (onSearch) onSearch();
   }
+
+  const renderSuggestions = () => {
+    if (!isOpen || suggestions.length === 0) return null;
+    return (
+      <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-md border border-border bg-surface shadow-xl">
+        <ul className="max-h-[70vh] overflow-y-auto py-1">
+          {suggestions.map((suggestion, index) => (
+            <li key={index}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch(suggestion);
+                  submitSearch(suggestion);
+                }}
+                className="w-full text-left flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors text-sm font-medium text-primary"
+              >
+                <Search className="h-4 w-4 text-secondary shrink-0" />
+                <span className="truncate capitalize">{suggestion}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
 
   if (mobile) {
     return (
@@ -108,9 +103,7 @@ function SearchBar({ mobile = false, onSearch }: { mobile?: boolean; onSearch?: 
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   onFocus={() => {
-                    if (suggestions && (suggestions.categories.length > 0 || suggestions.brands.length > 0 || suggestions.products.length > 0)) {
-                      setIsOpen(true);
-                    }
+                    if (suggestions.length > 0) setIsOpen(true);
                   }}
                   className="h-10 min-w-0 flex-1 bg-transparent text-base outline-none"
                   placeholder={t('nav.searchProducts', { defaultValue: 'Search products' })}
@@ -120,7 +113,7 @@ function SearchBar({ mobile = false, onSearch }: { mobile?: boolean; onSearch?: 
                   type="button"
                   onClick={() => {
                     setSearch('');
-                    setSuggestions(null);
+                    setSuggestions([]);
                     setIsOpen(false);
                     setMobileExpanded(false);
                   }}
@@ -131,102 +124,7 @@ function SearchBar({ mobile = false, onSearch }: { mobile?: boolean; onSearch?: 
                 </button>
               </div>
             </form>
-
-            {isOpen && suggestions && (
-              <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-md border border-border bg-surface shadow-xl">
-                <div className="max-h-[60vh] overflow-y-auto py-2">
-                  {suggestions.categories.length > 0 && (
-                    <div className="border-b border-border pb-2">
-                      <p className="px-4 pb-2 text-[11px] font-bold uppercase tracking-wide text-secondary">{t('nav.categories', { defaultValue: 'Categories' })}</p>
-                      <ul className="space-y-1">
-                        {suggestions.categories.map((category) => (
-                          <li key={`category-${category.id}`}>
-                            <Link
-                              to={category.href}
-                              onClick={() => {
-                                setIsOpen(false);
-                                setMobileExpanded(false);
-                                if (onSearch) onSearch();
-                              }}
-                              className="flex items-center gap-3 px-4 py-2 hover:bg-accent/5 transition-colors"
-                            >
-                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-accent">
-                                <Tag className="h-4 w-4" />
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-primary">{categoryName(t, category.slug, category.name)}</p>
-                                <p className="truncate text-xs text-secondary">{categoryDescription(t, category.slug, category.description)}</p>
-                              </div>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {suggestions.brands.length > 0 && (
-                    <div className="border-b border-border pb-2 pt-2">
-                      <p className="px-4 pb-2 text-[11px] font-bold uppercase tracking-wide text-secondary">{t('nav.brands', { defaultValue: 'Brands' })}</p>
-                      <ul className="space-y-1">
-                        {suggestions.brands.map((brand) => (
-                          <li key={`brand-${brand.id}`}>
-                            <Link
-                              to={brand.href}
-                              onClick={() => {
-                                setIsOpen(false);
-                                setMobileExpanded(false);
-                                if (onSearch) onSearch();
-                              }}
-                              className="flex items-center gap-3 px-4 py-2 hover:bg-accent/5 transition-colors"
-                            >
-                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-accent">
-                                <Store className="h-4 w-4" />
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-primary">{brand.name}</p>
-                                <p className="truncate text-xs text-secondary">{t('nav.brand', { defaultValue: 'Brand' })}</p>
-                              </div>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {suggestions.products.length > 0 && (
-                    <div className="pt-2">
-                      <p className="px-4 pb-2 text-[11px] font-bold uppercase tracking-wide text-secondary">{t('nav.products', { defaultValue: 'Products' })}</p>
-                      <ul className="space-y-1">
-                        {suggestions.products.map((product) => (
-                          <li key={`product-${product.id}`}>
-                            <Link
-                              to={product.href}
-                              onClick={() => {
-                                setIsOpen(false);
-                                setMobileExpanded(false);
-                                if (onSearch) onSearch();
-                              }}
-                              className="flex items-center gap-3 px-4 py-2 hover:bg-accent/5 transition-colors"
-                            >
-                              <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-muted">
-                                {product.image ? <img src={product.image} alt={product.name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-secondary"><ShoppingBag className="h-4 w-4" /></div>}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-primary">{product.name}</p>
-                                <p className="truncate text-xs text-secondary">
-                                  {product.category}
-                                  {product.brand ? ` · ${product.brand}` : ''}
-                                </p>
-                              </div>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+            {renderSuggestions()}
           </div>
         )}
       </div>
@@ -242,108 +140,14 @@ function SearchBar({ mobile = false, onSearch }: { mobile?: boolean; onSearch?: 
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             onFocus={() => {
-              if (suggestions && (suggestions.categories.length > 0 || suggestions.brands.length > 0 || suggestions.products.length > 0)) {
-                setIsOpen(true);
-              }
+              if (suggestions.length > 0) setIsOpen(true);
             }}
-            className={`${mobile ? 'h-10' : 'h-11'} w-full rounded-md border border-border bg-background pl-10 pr-3 text-base outline-none transition-colors focus:border-accent`}
+            className="h-11 w-full rounded-md border border-border bg-background pl-10 pr-3 text-base outline-none transition-colors focus:border-accent"
             placeholder={t('nav.searchProducts', { defaultValue: 'Search products' })}
           />
         </div>
       </form>
-
-      {isOpen && suggestions && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-md border border-border bg-surface shadow-xl">
-          <div className="max-h-[70vh] overflow-y-auto py-2">
-            {suggestions.categories.length > 0 && (
-              <div className="border-b border-border pb-2">
-                <p className="px-4 pb-2 text-[11px] font-bold uppercase tracking-wide text-secondary">{t('nav.categories', { defaultValue: 'Categories' })}</p>
-                <ul className="space-y-1">
-                  {suggestions.categories.map((category) => (
-                    <li key={`category-${category.id}`}>
-                      <Link
-                        to={category.href}
-                        onClick={() => {
-                          setIsOpen(false);
-                          if (onSearch) onSearch();
-                        }}
-                        className="flex items-center gap-3 px-4 py-2 hover:bg-accent/5 transition-colors"
-                      >
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-accent">
-                          <Tag className="h-4 w-4" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-primary">{categoryName(t, category.slug, category.name)}</p>
-                          <p className="truncate text-xs text-secondary">{categoryDescription(t, category.slug, category.description)}</p>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {suggestions.brands.length > 0 && (
-              <div className="border-b border-border pb-2 pt-2">
-                <p className="px-4 pb-2 text-[11px] font-bold uppercase tracking-wide text-secondary">{t('nav.brands', { defaultValue: 'Brands' })}</p>
-                <ul className="space-y-1">
-                  {suggestions.brands.map((brand) => (
-                    <li key={`brand-${brand.id}`}>
-                      <Link
-                        to={brand.href}
-                        onClick={() => {
-                          setIsOpen(false);
-                          if (onSearch) onSearch();
-                        }}
-                        className="flex items-center gap-3 px-4 py-2 hover:bg-accent/5 transition-colors"
-                      >
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-accent">
-                          <Store className="h-4 w-4" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-primary">{brand.name}</p>
-                          <p className="truncate text-xs text-secondary">{t('nav.brand', { defaultValue: 'Brand' })}</p>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {suggestions.products.length > 0 && (
-              <div className="pt-2">
-                <p className="px-4 pb-2 text-[11px] font-bold uppercase tracking-wide text-secondary">{t('nav.products', { defaultValue: 'Products' })}</p>
-                <ul className="space-y-1">
-                  {suggestions.products.map((product) => (
-                    <li key={`product-${product.id}`}>
-                      <Link
-                        to={product.href}
-                        onClick={() => {
-                          setIsOpen(false);
-                          if (onSearch) onSearch();
-                        }}
-                        className="flex items-center gap-3 px-4 py-2 hover:bg-accent/5 transition-colors"
-                      >
-                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-muted">
-                          {product.image ? <img src={product.image} alt={product.name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-secondary"><ShoppingBag className="h-4 w-4" /></div>}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-primary">{product.name}</p>
-                          <p className="truncate text-xs text-secondary">
-                            {product.category}
-                            {product.brand ? ` · ${product.brand}` : ''}
-                          </p>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {renderSuggestions()}
     </div>
   );
 }

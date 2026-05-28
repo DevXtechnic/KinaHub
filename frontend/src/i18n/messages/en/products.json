@@ -49,5 +49,9 @@
   "addToCart": "Add to cart",
   "noProducts": "No products found",
   "tryAnother": "Try another category or search.",
-  "filter": "Filter"
+  "filter": "Filter",
+  "soldBy": "Sold by",
+  "sellerStore": "Seller store",
+  "platformDelivery": "Ordered through Dukan, fulfilled by this local shop.",
+  "localShopProduct": "Local shop product"
 }

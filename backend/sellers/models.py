@@ -33,6 +33,9 @@ class Store(models.Model):
     description = models.TextField(blank=True)
     logo_url = models.URLField(blank=True)
     banner_url = models.URLField(blank=True)
+    address = models.CharField(max_length=260, blank=True)
+    area = models.CharField(max_length=140, blank=True)
+    map_url = models.URLField(blank=True)
     support_email = models.EmailField(blank=True)
     support_phone = models.CharField(max_length=30, blank=True)
     is_active = models.BooleanField(default=True)
@@ -49,4 +52,3 @@ class Store(models.Model):
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
-
