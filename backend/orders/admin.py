@@ -14,12 +14,12 @@ class OrderAdmin(admin.ModelAdmin):
         "user",
         "status",
         "payment_method",
-        "delivery_method",
+        "delivery_eta",
         "promo_code",
         "total_price",
         "created_at",
     ]
-    list_filter = ["status", "payment_method", "delivery_method"]
+    list_filter = ["status", "payment_method", "delivery_eta"]
     search_fields = ["user__email", "shipping_address", "promo_code"]
     inlines = [OrderItemInline]
 

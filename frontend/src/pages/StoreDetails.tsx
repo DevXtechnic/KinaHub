@@ -43,8 +43,21 @@ export default function StoreDetails() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-16 text-center text-secondary sm:py-24">
-        {t('store.loading', { defaultValue: 'Loading store' })}
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8 animate-pulse">
+        {/* Banner Skeleton */}
+        <div className="mb-8 h-48 w-full rounded-2xl bg-muted/60 sm:h-64 md:h-80 lg:h-96"></div>
+        {/* Store Info Skeleton */}
+        <div className="-mt-16 sm:-mt-20 md:-mt-24 px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div className="flex items-end gap-4 sm:gap-6">
+              <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-xl bg-muted border-4 border-background"></div>
+              <div className="mb-2">
+                <div className="h-6 sm:h-8 w-48 rounded bg-muted/60 mb-2"></div>
+                <div className="h-4 sm:h-5 w-32 rounded bg-muted/60"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

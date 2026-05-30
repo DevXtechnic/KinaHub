@@ -16,7 +16,6 @@ import { formatPrice, price, productImage } from '../lib/products';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../lib/api';
 import {
-  getDeliveryMethods,
   getKathmanduSuggestions,
   promoCodes,
   resolvePromoCode,
@@ -39,7 +38,9 @@ export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
   const { token, user } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodId>('cod');
-  const [deliveryMethod, setDeliveryMethod] = useState<'standard' | 'overnight'>('standard');
+  const [deliveryEta, setDeliveryEta] = useState('');
+  const [deliveryFee, setDeliveryFee] = useState(0);
+  const [isCalculatingDelivery, setIsCalculatingDelivery] = useState(false);
   const [placed, setPlaced] = useState(false);
   const [error, setError] = useState('');
   const [promoCodeInput, setPromoCodeInput] = useState('');
@@ -50,7 +51,6 @@ export default function Checkout() {
   const [customerNote, setCustomerNote] = useState('');
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState<Record<string, string>>({});
-  const deliveryMethods = useMemo(() => getDeliveryMethods(locale), [locale]);
   const paymentMethods = useMemo(
     () => [
       { id: 'cod' as PaymentMethodId, label: t('checkout.paymentCodLabel', { defaultValue: 'COD' }), description: t('checkout.paymentCodDescription', { defaultValue: 'Pay on delivery' }) },
@@ -179,8 +179,38 @@ export default function Checkout() {
     [addressQuery]
   );
 
+  useEffect(() => {
+    if (!addressQuery.trim()) {
+      setDeliveryFee(0);
+      setDeliveryEta('');
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCalculatingDelivery(true);
+      try {
+        const payload = {
+          shipping_address: addressQuery,
+          items: items.map(i => ({ product_id: i.product.id, quantity: i.quantity }))
+        };
+        const response = await apiRequest('/orders/calculate_delivery/', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        setDeliveryFee(Number(response.delivery_fee));
+        setDeliveryEta(response.estimated_time);
+      } catch (err) {
+        console.error('Failed to calculate delivery fee:', err);
+      } finally {
+        setIsCalculatingDelivery(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [addressQuery, items]);
+
   const deliveryAddress = [addressQuery.trim(), addressDetail.trim()].filter(Boolean).join(', ');
-  const shipping = selectedDeliveryMethod.fee;
+  const shipping = deliveryFee;
   const promoRate = appliedPromoCode ? promoCodes[appliedPromoCode as keyof typeof promoCodes] : 0;
   const discountAmount = Math.round((totalPrice * promoRate) / 100);
   const total = Math.max(totalPrice + shipping - discountAmount, 0);
@@ -252,7 +282,6 @@ export default function Checkout() {
         method: 'POST',
         body: JSON.stringify({
           payment_method: paymentMethod,
-          delivery_method: deliveryMethod,
           promo_code: appliedPromoCode,
           shipping_address: deliveryAddress,
           customer_note: customerNote.trim(),
@@ -375,48 +404,7 @@ export default function Checkout() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-border bg-surface p-4 shadow-sm sm:p-6">
-            <div className="mb-5 flex items-center gap-2">
-              <Truck className="h-4 w-4 text-accent" />
-              <h2 className="text-lg font-bold">{t('checkout.deliveryMethod', { defaultValue: 'Delivery method' })}</h2>
-            </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {deliveryMethods.map((method) => {
-                const active = deliveryMethod === method.id;
-                return (
-                  <button
-                    key={method.id}
-                    type="button"
-                    onClick={() => setDeliveryMethod(method.id)}
-                    className={`rounded-lg border p-4 text-left transition-all ${
-                      active
-                        ? 'border-accent bg-accent/10 shadow-[0_0_0_1px_rgba(248,86,6,0.35)]'
-                        : 'border-border bg-background hover:border-accent hover:bg-muted/60'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-primary">{method.label}</p>
-                        <p className="mt-1 text-sm text-secondary">{method.description}</p>
-                      </div>
-                      {active ? (
-                        <CheckCircle2 className="h-5 w-5 shrink-0 text-accent" />
-                      ) : (
-                        <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-secondary">
-                          + {formatPrice(method.fee)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-3 flex items-center justify-between text-xs text-secondary">
-                      <span>{t('checkout.eta', { defaultValue: 'ETA' })}: {method.eta}</span>
-                      <span className={active ? 'font-semibold text-accent' : ''}>{active ? t('common.selected', { defaultValue: 'Selected' }) : t('checkout.tapToChoose', { defaultValue: 'Tap to choose' })}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
           <div className="rounded-lg border border-border bg-surface p-4 shadow-sm sm:p-6">
             <h2 className="mb-4 text-lg font-bold">{t('checkout.paymentMethod', { defaultValue: 'Payment method' })}</h2>
@@ -518,12 +506,23 @@ export default function Checkout() {
                 <span className="text-secondary">{t('checkout.subtotal', { defaultValue: 'Subtotal' })}</span>
                 <span className="font-medium">{formatPrice(totalPrice)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-secondary">{t('checkout.delivery', { defaultValue: 'Delivery' })}</span>
-                <span className="font-medium">
-                  {selectedDeliveryMethod.label} · {formatPrice(shipping)}
+              <div className="flex justify-between py-2 text-sm">
+                <span className="text-secondary">{t('checkout.deliverySummary', { defaultValue: 'Delivery' })}</span>
+                <span className="font-medium text-primary">
+                  {isCalculatingDelivery ? (
+                    <span className="text-xs text-secondary animate-pulse">{t('checkout.calculating', { defaultValue: 'Calculating...' })}</span>
+                  ) : (
+                    shipping === 0 ? t('checkout.freeDelivery', { defaultValue: 'Free' }) : formatPrice(shipping)
+                  )}
                 </span>
               </div>
+              
+              {!isCalculatingDelivery && deliveryEta && (
+                <div className="flex justify-between py-1 text-sm bg-accent/10 rounded-md px-2 -mx-2">
+                  <span className="text-accent text-xs font-semibold">{t('checkout.etaSummary', { defaultValue: 'Estimated Time' })}</span>
+                  <span className="text-accent text-xs font-bold">{deliveryEta}</span>
+                </div>
+              )}
               <div className="rounded-lg border border-border bg-background p-4">
                 <div className="flex items-center gap-2">
                   <BadgePercent className="h-4 w-4 text-accent" />

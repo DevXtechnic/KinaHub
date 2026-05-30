@@ -58,3 +58,20 @@ class OrderViewSet(viewsets.ModelViewSet):
             body="Your order status was updated.",
         )
         return Response(OrderSerializer(order, context={"request": request}).data)
+
+    @action(detail=False, methods=["post"])
+    def calculate_delivery(self, request):
+        from .utils import calculate_delivery_info
+        from products.models import Product
+        
+        shipping_address = request.data.get("shipping_address", "")
+        items = request.data.get("items", [])
+        product_ids = [item.get("product_id") for item in items if item.get("product_id")]
+        
+        products = Product.objects.filter(id__in=product_ids, is_active=True)
+        fee, eta = calculate_delivery_info(shipping_address, products)
+        
+        return Response({
+            "delivery_fee": str(fee),
+            "estimated_time": eta
+        })

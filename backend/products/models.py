@@ -49,6 +49,8 @@ class Product(models.Model):
     is_active = models.BooleanField(default=True)
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
     tag = models.CharField(max_length=50, blank=True, null=True)
+    delivery_time_estimate = models.CharField(max_length=100, default="1-2 business days")
+    base_delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=150.00)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

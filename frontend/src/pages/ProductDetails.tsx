@@ -40,8 +40,26 @@ export default function ProductDetails() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-16 text-center text-secondary sm:py-24">
-        {t('products.loadingProduct', { defaultValue: 'Loading product' })}
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8 animate-pulse">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:gap-12">
+          {/* Image skeleton */}
+          <div className="aspect-square w-full rounded-xl bg-muted/60"></div>
+          {/* Info skeleton */}
+          <div className="flex flex-col pt-4">
+            <div className="mb-2 h-4 w-32 rounded bg-muted/60"></div>
+            <div className="mb-4 h-8 w-3/4 rounded bg-muted/60 sm:h-10"></div>
+            <div className="mb-6 h-6 w-1/4 rounded bg-muted/60"></div>
+            <div className="mb-8 space-y-2">
+              <div className="h-4 w-full rounded bg-muted/60"></div>
+              <div className="h-4 w-full rounded bg-muted/60"></div>
+              <div className="h-4 w-2/3 rounded bg-muted/60"></div>
+            </div>
+            <div className="mt-8 flex gap-4">
+              <div className="h-12 w-32 rounded-lg bg-muted/60"></div>
+              <div className="h-12 flex-1 rounded-lg bg-muted/60"></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

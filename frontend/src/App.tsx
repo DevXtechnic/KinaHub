@@ -21,6 +21,8 @@ import CRMPage from './pages/CRMPage';
 import OrdersPage from './pages/OrdersPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import StoreDetails from './pages/StoreDetails';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 
 import ScrollToTop from './components/ScrollToTop';
 
@@ -42,6 +44,8 @@ function App() {
                 <Route path="store/:slug" element={<StoreDetails />} />
                 <Route path="cart" element={<Cart />} />
                 <Route path="checkout" element={<Checkout />} />
+                <Route path="privacy" element={<PrivacyPolicy />} />
+                <Route path="terms" element={<TermsOfService />} />
               </Route>
 
               <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>

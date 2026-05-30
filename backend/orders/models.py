@@ -26,17 +26,10 @@ class Order(models.Model):
         (PAYMENT_IME_PAY, "IME Pay"),
     )
 
-    DELIVERY_STANDARD = "standard"
-    DELIVERY_OVERNIGHT = "overnight"
-    DELIVERY_CHOICES = (
-        (DELIVERY_STANDARD, "Standard Delivery"),
-        (DELIVERY_OVERNIGHT, "Overnight Delivery"),
-    )
-
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     payment_method = models.CharField(max_length=50, choices=PAYMENT_CHOICES, default=PAYMENT_COD)
-    delivery_method = models.CharField(max_length=20, choices=DELIVERY_CHOICES, default=DELIVERY_STANDARD)
+    delivery_eta = models.CharField(max_length=100, blank=True)
     delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=150)
     promo_code = models.CharField(max_length=50, blank=True)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)

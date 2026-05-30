@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowUpDown, Filter, Search, Shuffle } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
+import ProductCardSkeleton from '../components/ProductCardSkeleton';
 import { API } from '../lib/products';
 import { getCategoryIcon } from '../lib/categoryIcons';
 import { categoryName } from '../lib/categoryText';
@@ -12,6 +13,7 @@ import { useTranslation } from '../i18n/LocaleContext';
 export default function Products() {
   const { t } = useTranslation();
   const [products, setProducts] = useState<ProductType[]>([]);
+  const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<CategoryType[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get('q') || '');
@@ -40,10 +42,12 @@ export default function Products() {
     else if (refresh) params.set('random', 'true');
     else if (!query && !categoryFilter) params.set('sort', 'featured');
 
+    setLoading(true);
     fetch(`${API}/items/?${params.toString()}`)
       .then((response) => response.json())
       .then(setProducts)
-      .catch(() => setProducts([]));
+      .catch(() => setProducts([]))
+      .finally(() => setLoading(false));
   }, [categoryFilter, query, sort, refresh]);
 
   useEffect(() => {
@@ -191,7 +195,13 @@ export default function Products() {
               {t('products.clearSort', { defaultValue: 'Clear sort' })}
             </button>
           </div>
-          {products.length > 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+              {[...Array(8)].map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : products.length > 0 ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} />

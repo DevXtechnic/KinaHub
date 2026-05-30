@@ -8,10 +8,7 @@ from products.serializers import ProductSerializer
 from .models import Order, OrderItem, Payment
 
 
-DELIVERY_FEES = {
-    Order.DELIVERY_STANDARD: Decimal("150.00"),
-    Order.DELIVERY_OVERNIGHT: Decimal("350.00"),
-}
+
 
 PROMO_CODES = {
     "aura10": Decimal("10"),
@@ -49,7 +46,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "customer_email",
             "status",
             "payment_method",
-            "delivery_method",
+            "delivery_eta",
             "delivery_fee",
             "promo_code",
             "discount_amount",
@@ -65,6 +62,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "id",
             "customer_email",
             "status",
+            "delivery_eta",
             "delivery_fee",
             "discount_amount",
             "total_price",
@@ -93,11 +91,15 @@ class OrderSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
+        from .utils import calculate_delivery_info
         items_data = validated_data.pop("items")
         user = self.context["request"].user
         promo_code = validated_data.get("promo_code", "").strip().lower()
-        delivery_method = validated_data.get("delivery_method", Order.DELIVERY_STANDARD)
-        delivery_fee = DELIVERY_FEES.get(delivery_method, DELIVERY_FEES[Order.DELIVERY_STANDARD])
+        shipping_address = validated_data.get("shipping_address", "")
+        
+        products = [item["product"] for item in items_data]
+        delivery_fee, delivery_eta = calculate_delivery_info(shipping_address, products)
+        
         subtotal = sum(
             (item["product"].current_price * item["quantity"] for item in items_data),
             Decimal("0"),
@@ -111,6 +113,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
         validated_data["promo_code"] = promo_code
         validated_data["delivery_fee"] = delivery_fee
+        validated_data["delivery_eta"] = delivery_eta
         validated_data["discount_amount"] = discount_amount
         validated_data["total_price"] = total
         order = Order.objects.create(user=user, **validated_data)

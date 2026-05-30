@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, BadgePercent, Truck, ShieldCheck, RefreshCw, Flame } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ProductCard from '../components/ProductCard';
+import ProductCardSkeleton from '../components/ProductCardSkeleton';
 import { API, formatPrice, price, productImage } from '../lib/products';
 import { getCategoryIcon } from '../lib/categoryIcons';
 import { categoryDescription, categoryName } from '../lib/categoryText';
@@ -112,7 +113,11 @@ export default function Home() {
                 </div>
               </Link>
             ) : (
-              <div className="flex aspect-[5/4] items-center justify-center rounded-md bg-muted text-secondary">{t('home.loadingProducts', { defaultValue: 'Loading products' })}</div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {[...Array(5)].map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
+              </div>
             )}
           </div>
         </div>
