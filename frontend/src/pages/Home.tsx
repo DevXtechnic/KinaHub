@@ -32,12 +32,12 @@ export default function Home() {
     fetch(`${API}/items/?random=true`)
       .then((response) => response.json())
       .then((data: ProductType[]) => {
-        setProducts(data.slice(0, 12));
-        // Give the image a moment to start loading before revealing the hero
+        setProducts(data.slice(0, 30));
+        // Give the image a moment to start loading before revealing the hero (delayed longer per user request)
         setTimeout(() => {
           setHeroReady(true);
           setLoading(false);
-        }, 600);
+        }, 2500);
       })
       .catch(() => setLoading(false));
 
@@ -49,7 +49,9 @@ export default function Home() {
 
   const heroProduct = products[0];
   const flashDeals = products.slice(1, 5);
-  const dailyPicks = products.slice(5, 12);
+  const dailyPicks = products.slice(5, 13);
+  const trendingProducts = products.slice(13, 21);
+  const recommendedProducts = products.slice(21, 30);
 
   return (
     <div className="min-h-screen">
@@ -237,13 +239,54 @@ export default function Home() {
             <h2 className="text-2xl font-black tracking-tight">{t('home.justForToday', { defaultValue: 'Just for today' })}</h2>
             <span className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-secondary">{t('home.randomized', { defaultValue: 'Randomized from DB' })}</span>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
             {dailyPicks.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
         </section>
       )}
+
+      {trendingProducts.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <h2 className="text-2xl font-black tracking-tight">{t('home.trendingNow', { defaultValue: 'Trending Now' })}</h2>
+            <Link to="/products?sort=popular" className="text-sm font-semibold text-accent hover:underline">
+              {t('home.viewAll', { defaultValue: 'View all' })}
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
+            {trendingProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {recommendedProducts.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <h2 className="text-2xl font-black tracking-tight">{t('home.recommendedForYou', { defaultValue: 'Recommended for you' })}</h2>
+            <span className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-secondary">AI Curated</span>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+            {recommendedProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Explore More Button Section */}
+      <section className="mx-auto max-w-7xl px-4 pb-20 pt-4 sm:px-6 lg:px-8 flex justify-center">
+        <Link
+          to="/products"
+          className="inline-flex items-center gap-2 rounded-md bg-accent px-8 py-3.5 font-bold text-background transition-colors hover:bg-orange-600"
+        >
+          {t('home.exploreMore', { defaultValue: 'Explore all products' })}
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </section>
     </div>
   );
 }

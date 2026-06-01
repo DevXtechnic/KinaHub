@@ -3,7 +3,11 @@ import type { FormEvent } from 'react';
 import { Bot, Send, Sparkles, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
-import { aiChatReply, cartAiOverview } from '../lib/ai';
+import { useTranslation } from '../i18n/LocaleContext';
+import { askOpenRouter, cartAiOverview } from '../lib/ai';
+import { Link } from 'react-router-dom';
+import { API, primaryImage, price, formatPrice } from '../lib/products';
+import type { ProductType } from '../lib/products';
 
 interface ChatMessage {
   role: 'assistant' | 'user';
@@ -19,8 +23,11 @@ const MOBILE_BOTTOM_OFFSET = 88;
 
 export default function AiAssistantWidget() {
   const { items } = useCart();
+  const { locale } = useTranslation();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [catalog, setCatalog] = useState<ProductType[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const [launcherPosition, setLauncherPosition] = useState({ x: 0, y: 0 });
   const dragState = useRef({
@@ -48,6 +55,13 @@ export default function AiAssistantWidget() {
 
     syncMobileState();
     mobileQuery.addEventListener('change', syncMobileState);
+
+    // Fetch product catalog for AI context
+    fetch(API)
+      .then(res => res.json())
+      .then(data => setCatalog(data))
+      .catch(console.error);
+
     return () => mobileQuery.removeEventListener('change', syncMobileState);
   }, []);
 
@@ -81,15 +95,25 @@ export default function AiAssistantWidget() {
     return () => window.removeEventListener('resize', handleResize);
   }, [isMobile]);
 
-  function sendMessage(text: string) {
+  async function sendMessage(text: string) {
     const trimmed = text.trim();
-    if (!trimmed) return;
-    setMessages((current) => [
-      ...current,
+    if (!trimmed || loading) return;
+    
+    const newMessages: ChatMessage[] = [
+      ...messages,
       { role: 'user', text: trimmed },
-      { role: 'assistant', text: aiChatReply(trimmed, items) },
-    ]);
+    ];
+    setMessages(newMessages);
     setMessage('');
+    setLoading(true);
+
+    const replyText = await askOpenRouter(newMessages, items, locale, catalog);
+    
+    setMessages(current => [
+      ...current,
+      { role: 'assistant', text: replyText },
+    ]);
+    setLoading(false);
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -155,6 +179,41 @@ export default function AiAssistantWidget() {
     }
     setOpen((current) => !current);
   }
+
+  const renderMessage = (text: string) => {
+    // Basic markdown for **bold** and [PRODUCT:slug]
+    const parts = text.split(/(\*\*.*?\*\*|\[PRODUCT:[a-zA-Z0-9-]+\])/g);
+
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={index} className="font-bold">{part.slice(2, -2)}</strong>;
+      }
+      if (part.startsWith('[PRODUCT:') && part.endsWith(']')) {
+        const slug = part.slice(9, -1);
+        const product = catalog.find(p => p.slug === slug);
+        if (!product) return null;
+
+        return (
+          <Link
+            key={index}
+            to={`/product/${product.slug}`}
+            className="my-2 flex items-center gap-3 rounded-lg border border-border bg-background p-2 transition-colors hover:border-accent hover:bg-surface"
+          >
+            <img 
+              src={primaryImage(product.images)} 
+              alt={product.name}
+              className="h-12 w-12 rounded-md object-cover" 
+            />
+            <div className="flex-1 min-w-0">
+              <p className="truncate text-sm font-semibold text-primary">{product.name}</p>
+              <p className="text-xs font-bold text-accent">{formatPrice(price(product))}</p>
+            </div>
+          </Link>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
 
   return (
     <>
@@ -252,13 +311,22 @@ export default function AiAssistantWidget() {
                       key={`${item.role}-${index}`}
                       className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm leading-6 whitespace-pre-wrap break-words ${
                         item.role === 'assistant'
-                          ? 'mr-auto border border-border bg-background text-primary'
-                          : 'ml-auto bg-accent text-background'
+                          ? 'mr-auto border border-border bg-background text-primary selection:bg-accent/20'
+                          : 'ml-auto bg-accent text-background selection:bg-background/30 selection:text-background'
                       }`}
                     >
-                      {item.text}
+                      {renderMessage(item.text)}
                     </div>
                   ))}
+                  {loading && (
+                    <div className="mr-auto rounded-2xl border border-border bg-background px-4 py-3 text-primary">
+                      <div className="flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-secondary [animation-delay:-0.3s]"></span>
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-secondary [animation-delay:-0.15s]"></span>
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-secondary"></span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="shrink-0 border-t border-border bg-background/95 px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] backdrop-blur-sm sm:bg-background/70 sm:pb-3">

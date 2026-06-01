@@ -20,6 +20,20 @@ python manage.py runserver &
 BACKEND_PID=$!
 cd ..
 
+echo "--------------------------------------------------------"
+echo "To use the advanced Dukan AI chat, you can provide an OpenRouter API key."
+echo "If you don't have one, just press Enter to use the basic offline AI."
+read -p "Enter OpenRouter API Key (sk-or-...): " OPENROUTER_KEY
+
+if [ -n "$OPENROUTER_KEY" ]; then
+    echo "VITE_OPENROUTER_API_KEY=$OPENROUTER_KEY" > frontend/.env.local
+    echo "API Key saved to frontend/.env.local"
+else
+    echo "VITE_OPENROUTER_API_KEY=" > frontend/.env.local
+    echo "Skipped API Key. Basic offline AI will be used."
+fi
+echo "--------------------------------------------------------"
+
 echo "Starting Vite frontend..."
 cd frontend || exit
 # Install dependencies if needed

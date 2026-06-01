@@ -13,9 +13,17 @@ class BrandSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'slug']
 
 class ProductImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = ProductImage
         fields = ['id', 'image_url', 'alt_text', 'is_primary', 'order']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image_url and obj.image_url.startswith('/media/') and request:
+            return request.build_absolute_uri(obj.image_url)
+        return obj.image_url
 
 
 class InventorySerializer(serializers.ModelSerializer):
@@ -30,6 +38,20 @@ class InventorySerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
+    image_url = serializers.SerializerMethodField()
+    video_url = serializers.SerializerMethodField()
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image_url and obj.image_url.startswith('/media/') and request:
+            return request.build_absolute_uri(obj.image_url)
+        return obj.image_url
+
+    def get_video_url(self, obj):
+        request = self.context.get('request')
+        if obj.video_url and obj.video_url.startswith('/media/') and request:
+            return request.build_absolute_uri(obj.video_url)
+        return obj.video_url
 
     class Meta:
         model = Review

@@ -214,6 +214,7 @@ export function aiShoppingShortcuts(products: ProductType[]): AiShortcut[] {
   ];
 }
 
+// Basic offline AI fallback
 export function aiChatReply(message: string, items: CartItem[]) {
   const input = message.toLowerCase();
   const cart = cartAiOverview(items);
@@ -232,4 +233,83 @@ export function aiChatReply(message: string, items: CartItem[]) {
   }
 
   return 'I can help compare products, explain your cart, suggest seller grouping, and guide checkout. Ask about deals, delivery, sellers, or payment.';
+}
+
+// Ordered by preference — will try each until one succeeds
+const FREE_MODELS = [
+  'openai/gpt-oss-20b:free',
+  'nvidia/nemotron-nano-9b-v2:free',
+  'google/gemma-4-31b-it:free',
+  'nvidia/nemotron-3-nano-30b-a3b:free',
+];
+
+export async function askOpenRouter(
+  chatHistory: { role: 'assistant' | 'user'; text: string }[],
+  items: CartItem[],
+  locale: string = 'en',
+  catalog: Partial<ProductType>[] = []
+): Promise<string> {
+  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+  const lastMessage = chatHistory[chatHistory.length - 1]?.text || '';
+  
+  if (!apiKey || apiKey.trim() === '') {
+    // Fallback to basic offline AI
+    return aiChatReply(lastMessage, items);
+  }
+
+  const cartContext = items.length === 0
+    ? "The user's cart is currently empty."
+    : `The user currently has the following items in their cart:\n${items.map(i => `- ${i.quantity}x ${i.product.name} (${formatPrice(price(i.product))} each)`).join('\n')}`;
+
+  const catalogContext = catalog.length === 0
+    ? ""
+    : `\nHere are some products available in the store:\n${catalog.slice(0, 100).map(p => `- ${p.name} (Price: Rs. ${p.price || p.discount_price}, Slug: ${p.slug})`).join('\n')}\n\nIMPORTANT: If you recommend a product from this list, you MUST include the exact tag [PRODUCT:slug] (e.g. [PRODUCT:samsung-t7-shield]) in your message so the UI can render a clickable card.`;
+
+  let languageInstruction = "Reply entirely in English.";
+  if (locale === 'np') {
+    languageInstruction = "Reply in a mix of Nepali script and Roman Nepali (e.g. using common Roman Nepali words like 'khana' for food, 'saman' for goods, 'paisa' for money). Make it sound natural to a Nepali speaker.";
+  }
+
+  const messages = [
+    {
+      role: 'system',
+      content: `You are Dukan AI, a helpful and knowledgeable local commerce shopping assistant for a Nepali e-commerce platform called Kina. ${languageInstruction} Keep your answers brief (2-4 sentences max), friendly, and highly relevant to e-commerce. You can use markdown like **bold** for emphasis.\n${cartContext}${catalogContext}`
+    },
+    ...chatHistory.map(msg => ({
+      role: msg.role,
+      content: msg.text
+    }))
+  ];
+
+  for (const model of FREE_MODELS) {
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ model, messages })
+      });
+
+      if (response.status === 429 || response.status === 404) {
+        console.warn(`Model ${model} unavailable (${response.status}), trying next...`);
+        continue;
+      }
+
+      if (!response.ok) {
+        console.error(`OpenRouter error for ${model}:`, await response.text());
+        continue;
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (content) return content;
+    } catch (error) {
+      console.error(`Fetch error for ${model}:`, error);
+      continue;
+    }
+  }
+
+  return "Sorry, all AI models are temporarily busy. Please try again in a moment!";
 }
