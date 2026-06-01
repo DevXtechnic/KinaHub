@@ -98,7 +98,12 @@ class OrderSerializer(serializers.ModelSerializer):
         shipping_address = validated_data.get("shipping_address", "")
         
         products = [item["product"] for item in items_data]
-        delivery_fee, delivery_eta = calculate_delivery_info(shipping_address, products)
+        quantity_map = {item["product"].id: item["quantity"] for item in items_data}
+        total_fee, item_deliveries = calculate_delivery_info(shipping_address, products, quantity_map)
+        
+        # Aggregate unique ETAs
+        unique_etas = set(info["eta"] for info in item_deliveries.values())
+        delivery_eta = ", ".join(unique_etas) if unique_etas else "Unknown"
         
         subtotal = sum(
             (item["product"].current_price * item["quantity"] for item in items_data),
@@ -109,10 +114,10 @@ class OrderSerializer(serializers.ModelSerializer):
             Decimal("0.01"),
             rounding=ROUND_HALF_UP,
         )
-        total = (subtotal + delivery_fee - discount_amount).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        total = (subtotal + total_fee - discount_amount).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         validated_data["promo_code"] = promo_code
-        validated_data["delivery_fee"] = delivery_fee
+        validated_data["delivery_fee"] = total_fee
         validated_data["delivery_eta"] = delivery_eta
         validated_data["discount_amount"] = discount_amount
         validated_data["total_price"] = total

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, Search, ShoppingBag, User, X } from 'lucide-react';
+import { Menu, Search, ShoppingBag, Sparkles, User, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
@@ -16,6 +16,7 @@ function SearchBar({ mobile = false, onSearch }: { mobile?: boolean; onSearch?: 
   const [isOpen, setIsOpen] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -44,6 +45,19 @@ function SearchBar({ mobile = false, onSearch }: { mobile?: boolean; onSearch?: 
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [mobile]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        event.preventDefault();
+        if (mobile) setMobileExpanded(true);
+        // Timeout allows mobile input to render if just expanded
+        setTimeout(() => inputRef.current?.focus(), 10);
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [mobile]);
 
   function submitSearch(event: FormEvent<HTMLFormElement> | string) {
@@ -100,6 +114,7 @@ function SearchBar({ mobile = false, onSearch }: { mobile?: boolean; onSearch?: 
               <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3">
                 <Search className="h-4 w-4 shrink-0 text-secondary" />
                 <input
+                  ref={inputRef}
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   onFocus={() => {
@@ -137,14 +152,20 @@ function SearchBar({ mobile = false, onSearch }: { mobile?: boolean; onSearch?: 
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary" />
           <input
+            ref={inputRef}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             onFocus={() => {
               if (suggestions.length > 0) setIsOpen(true);
             }}
-            className="h-11 w-full rounded-md border border-border bg-background pl-10 pr-3 text-base outline-none transition-colors focus:border-accent"
+            className="h-11 w-full rounded-md border border-border bg-background pl-10 pr-12 text-base outline-none transition-colors focus:border-accent"
             placeholder={t('nav.searchProducts', { defaultValue: 'Search products' })}
           />
+          <div className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 items-center">
+            <kbd className="hidden rounded border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-secondary sm:block">
+              /
+            </kbd>
+          </div>
         </div>
       </form>
       {renderSuggestions()}
@@ -171,7 +192,13 @@ export default function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center gap-3 md:h-16 md:gap-4">
           <Link to="/" className="flex shrink-0 items-center gap-2">
-            <img src="/logo.png" alt="Dukan Logo" className="h-10 w-auto object-contain md:h-11" />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-background shadow-sm md:h-12 md:w-12">
+              <img
+                src="/logo.png"
+                alt="Dukan Logo"
+                className="h-[130%] w-[130%] object-cover object-center"
+              />
+            </span>
           </Link>
 
           <SearchBar />
@@ -180,6 +207,10 @@ export default function Navbar() {
             <button onClick={toggleLanguage} className="text-xs font-bold text-secondary hover:text-primary transition-colors">
               {locale === 'en' ? 'EN | NP' : 'NP | EN'}
             </button>
+            <Link to="/ai" className="inline-flex items-center gap-2 text-sm font-semibold text-secondary hover:text-primary">
+              <Sparkles className="h-4 w-4" />
+              {t('nav.ai', { defaultValue: 'AI' })}
+            </Link>
             <Link to="/products" className="text-sm font-semibold text-secondary hover:text-primary">
               {t('nav.products', { defaultValue: 'Products' })}
             </Link>
@@ -202,6 +233,9 @@ export default function Navbar() {
               {locale.toUpperCase()}
             </button>
             <SearchBar mobile />
+            <Link to="/ai" className="flex h-10 w-10 items-center justify-center rounded-md border border-border text-secondary hover:text-primary" aria-label={t('nav.ai', { defaultValue: 'AI' })}>
+              <Sparkles className="h-5 w-5" />
+            </Link>
             <ThemeToggle />
             <button
               type="button"
@@ -219,6 +253,9 @@ export default function Navbar() {
             <div className="grid grid-cols-2 gap-2 text-sm font-semibold">
               <Link onClick={closeMenu} to="/products" className="rounded-md bg-background px-3 py-3 text-secondary hover:text-primary">
                 {t('nav.products', { defaultValue: 'Products' })}
+              </Link>
+              <Link onClick={closeMenu} to="/ai" className="rounded-md bg-background px-3 py-3 text-secondary hover:text-primary">
+                {t('nav.ai', { defaultValue: 'AI' })}
               </Link>
               <Link onClick={closeMenu} to="/" className="rounded-md bg-background px-3 py-3 text-secondary hover:text-primary">
                 {t('nav.home', { defaultValue: 'Home' })}

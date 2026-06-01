@@ -1,0 +1,300 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
+import { Bot, Send, Sparkles, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useCart } from '../context/CartContext';
+import { aiChatReply, cartAiOverview } from '../lib/ai';
+
+interface ChatMessage {
+  role: 'assistant' | 'user';
+  text: string;
+}
+
+const starterPrompts = ['Summarize my cart', 'Find best deals', 'Explain delivery', 'How sellers work'];
+
+const MOBILE_DOCK_KEY = 'dukan-ai-mobile-dock';
+const LAUNCHER_SIZE = 48;
+const MOBILE_GAP = 16;
+const MOBILE_BOTTOM_OFFSET = 88;
+
+export default function AiAssistantWidget() {
+  const { items } = useCart();
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+  const [launcherPosition, setLauncherPosition] = useState({ x: 0, y: 0 });
+  const dragState = useRef({
+    dragging: false,
+    pointerId: -1,
+    offsetX: 0,
+    offsetY: 0,
+    moved: false,
+  });
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      role: 'assistant',
+      text: 'Ask me about products, delivery, seller stores, checkout, or your cart.',
+    },
+  ]);
+
+  const cartHint = useMemo(() => cartAiOverview(items)[0]?.body, [items]);
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia('(max-width: 639px)');
+
+    function syncMobileState() {
+      setIsMobile(mobileQuery.matches);
+    }
+
+    syncMobileState();
+    mobileQuery.addEventListener('change', syncMobileState);
+    return () => mobileQuery.removeEventListener('change', syncMobileState);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const stored = window.localStorage.getItem(MOBILE_DOCK_KEY);
+    if (stored) {
+      try {
+        const next = JSON.parse(stored) as { x: number; y: number };
+        if (typeof next.x === 'number' && typeof next.y === 'number') {
+          setLauncherPosition(clampLauncher(next.x, next.y));
+          return;
+        }
+      } catch {
+        // Ignore malformed storage.
+      }
+    }
+
+    setLauncherPosition(getDefaultMobileDock());
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!isMobile) return;
+
+    function handleResize() {
+      setLauncherPosition((current) => clampLauncher(current.x, current.y));
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isMobile]);
+
+  function sendMessage(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setMessages((current) => [
+      ...current,
+      { role: 'user', text: trimmed },
+      { role: 'assistant', text: aiChatReply(trimmed, items) },
+    ]);
+    setMessage('');
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    sendMessage(message);
+  }
+
+  function resetConversation() {
+    setMessages([
+      {
+        role: 'assistant',
+        text: 'Ask me about products, delivery, seller stores, checkout, or your cart.',
+      },
+    ]);
+    setMessage('');
+  }
+
+  function clampLauncher(x: number, y: number) {
+    const maxX = Math.max(window.innerWidth - LAUNCHER_SIZE - MOBILE_GAP, MOBILE_GAP);
+    const maxY = Math.max(window.innerHeight - LAUNCHER_SIZE - MOBILE_GAP, MOBILE_GAP);
+    return {
+      x: Math.min(Math.max(x, MOBILE_GAP), maxX),
+      y: Math.min(Math.max(y, MOBILE_GAP), maxY),
+    };
+  }
+
+  function getDefaultMobileDock() {
+    return clampLauncher(window.innerWidth - LAUNCHER_SIZE - MOBILE_GAP, window.innerHeight - LAUNCHER_SIZE - MOBILE_BOTTOM_OFFSET);
+  }
+
+  function handlePointerDown(event: React.PointerEvent<HTMLButtonElement>) {
+    if (!isMobile || event.pointerType !== 'touch') return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    dragState.current = {
+      dragging: true,
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      moved: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePointerMove(event: React.PointerEvent<HTMLButtonElement>) {
+    if (!isMobile || !dragState.current.dragging || dragState.current.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    const next = clampLauncher(event.clientX - dragState.current.offsetX, event.clientY - dragState.current.offsetY);
+    dragState.current.moved = dragState.current.moved || Math.abs(next.x - launcherPosition.x) > 2 || Math.abs(next.y - launcherPosition.y) > 2;
+    setLauncherPosition(next);
+  }
+
+  function endDrag(event: React.PointerEvent<HTMLButtonElement>) {
+    if (!isMobile || dragState.current.pointerId !== event.pointerId) return;
+    dragState.current.dragging = false;
+    dragState.current.pointerId = -1;
+    window.localStorage.setItem(MOBILE_DOCK_KEY, JSON.stringify(launcherPosition));
+  }
+
+  function handleLauncherClick() {
+    if (isMobile && dragState.current.moved) {
+      dragState.current.moved = false;
+      return;
+    }
+    setOpen((current) => !current);
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={handleLauncherClick}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onPointerLeave={endDrag}
+        style={
+          isMobile
+            ? {
+                left: launcherPosition.x,
+                top: launcherPosition.y,
+                right: 'auto',
+                bottom: 'auto',
+              }
+            : undefined
+        }
+        className={`fixed z-[60] flex h-12 w-12 items-center justify-center rounded-full border border-accent/40 bg-accent text-background shadow-lg shadow-black/20 transition-transform active:scale-95 ${
+          isMobile ? 'touch-none' : 'hover:scale-105 bottom-24 right-4 sm:bottom-6 sm:right-6'
+        }`}
+        aria-label="Open AI assistant"
+      >
+        <Bot className="h-5 w-5" aria-hidden="true" />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Close AI assistant"
+              className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[1px] sm:bg-transparent sm:backdrop-blur-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpen(false)}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, y: 36 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 36 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="fixed inset-x-0 bottom-16 z-50 flex max-h-[calc(100svh-8rem)] flex-col overflow-hidden rounded-t-3xl border border-border bg-surface shadow-2xl shadow-black/35 sm:inset-auto sm:bottom-24 sm:right-6 sm:left-auto sm:block sm:w-[420px] sm:rounded-lg sm:max-h-none"
+            >
+              <div className="flex justify-center pt-2 sm:hidden">
+                <span className="h-1.5 w-12 rounded-full bg-border" />
+              </div>
+
+              <div className="flex items-start justify-between gap-3 border-b border-border bg-background px-4 py-3 sm:px-4 sm:py-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent text-background">
+                    <Sparkles className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-primary">Dukan AI</p>
+                    <p className="text-xs text-secondary">Local commerce assistant</p>
+                    <p className="mt-1 inline-flex items-center rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">
+                      Ready
+                    </p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={resetConversation}
+                    className="hidden rounded-md px-2 py-1 text-xs font-semibold text-secondary hover:bg-surface hover:text-primary sm:inline-flex"
+                  >
+                    New chat
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    className="flex h-9 w-9 items-center justify-center rounded-md text-secondary hover:bg-surface hover:text-primary"
+                    aria-label="Close AI assistant"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex min-h-0 flex-1 flex-col sm:h-[560px] sm:min-h-0 sm:max-h-[min(72vh,44rem)]">
+                <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+                  {cartHint && (
+                    <div className="rounded-md border border-accent/30 bg-accent/10 p-3 text-sm leading-6 text-primary">
+                      {cartHint}
+                    </div>
+                  )}
+                  {messages.map((item, index) => (
+                    <div
+                      key={`${item.role}-${index}`}
+                      className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm leading-6 whitespace-pre-wrap break-words ${
+                        item.role === 'assistant'
+                          ? 'mr-auto border border-border bg-background text-primary'
+                          : 'ml-auto bg-accent text-background'
+                      }`}
+                    >
+                      {item.text}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="shrink-0 border-t border-border bg-background/95 px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] backdrop-blur-sm sm:bg-background/70 sm:pb-3">
+                  <div className="scrollbar-hide mb-2.5 flex gap-2 overflow-x-auto pb-1">
+                    {starterPrompts.map((prompt) => (
+                      <button
+                        key={prompt}
+                        type="button"
+                        onClick={() => sendMessage(prompt)}
+                        className="shrink-0 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-secondary hover:border-accent hover:text-primary"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                  <form onSubmit={submit} className="flex items-center gap-2">
+                    <input
+                      value={message}
+                      onChange={(event) => setMessage(event.target.value)}
+                      placeholder="Ask Dukan AI"
+                      className="h-11 min-w-0 flex-1 rounded-full border border-border bg-background px-4 text-sm text-primary outline-none focus:border-accent"
+                    />
+                    <button
+                      type="submit"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-background transition-transform hover:scale-105 active:scale-95"
+                      aria-label="Send message"
+                    >
+                      <Send className="h-4 w-4" />
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}

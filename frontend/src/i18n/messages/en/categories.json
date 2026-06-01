@@ -50,5 +50,29 @@
   "books": {
     "name": "Books",
     "description": "Study, fiction, business, and stationery"
+  },
+  "cameras": {
+    "name": "Cameras",
+    "description": "Camera bodies, lenses, tripods, and accessories"
+  },
+  "school": {
+    "name": "School",
+    "description": "Bags, learning kits, calculators, and class gear"
+  },
+  "stationery": {
+    "name": "Stationery",
+    "description": "Pens, notebooks, organizers, and desk tools"
+  },
+  "pets": {
+    "name": "Pets",
+    "description": "Food, toys, grooming, and daily pet care"
+  },
+  "automotive-bikes": {
+    "name": "Automotive & Bikes",
+    "description": "Helmets, lights, mounts, and ride accessories"
+  },
+  "eco-sustainable": {
+    "name": "Eco & Sustainable",
+    "description": "Reusable bottles, bamboo goods, and solar gadgets"
   }
 }

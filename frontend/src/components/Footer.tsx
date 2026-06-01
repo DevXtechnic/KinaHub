@@ -17,7 +17,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           <div>
             <Link to="/" className="mb-4 flex items-center gap-2">
-              <img src="/logo.png" alt="Dukan Logo" className="h-9 w-auto object-contain" />
+              <img src="/logo.png" alt="Dukan Logo" className="h-11 w-auto object-contain md:h-12" />
               <span className="text-xl font-black tracking-tight">Dukan</span>
             </Link>
             <p className="text-sm leading-6 text-secondary">{t('footer.description', { defaultValue: 'Products, deals, delivery, checkout.' })}</p>

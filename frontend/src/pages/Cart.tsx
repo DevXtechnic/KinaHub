@@ -5,6 +5,8 @@ import { Trash2, ShoppingBag, ArrowRight, Minus, Plus, Box } from 'lucide-react'
 import { price, productImage, formatPrice } from '../lib/products';
 import { useTranslation } from '../i18n/LocaleContext';
 import { categoryName } from '../lib/categoryText';
+import AiInsightPanel from '../components/AiInsightPanel';
+import { cartAiOverview } from '../lib/ai';
 
 export default function Cart() {
   const { items, totalCount, totalPrice, updateQuantity, removeFromCart, clearCart } = useCart();
@@ -122,6 +124,9 @@ export default function Cart() {
         {/* Order Summary */}
         <div className="lg:w-1/3">
           <div className="sticky top-28 rounded-2xl border border-border bg-surface p-5 sm:p-6">
+            <div className="mb-5">
+              <AiInsightPanel title="Cart AI brief" insights={cartAiOverview(items)} compact />
+            </div>
             <h2 className="mb-6 text-xl font-bold">{t('cart.orderSummary', { defaultValue: 'Order summary' })}</h2>
 
             <div className="space-y-4 mb-6 text-sm">

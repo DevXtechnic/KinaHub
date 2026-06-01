@@ -66,7 +66,13 @@ class Product(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            base_slug = slugify(self.name)
+            slug = base_slug
+            suffix = 2
+            while Product.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{suffix}"
+                suffix += 1
+            self.slug = slug
         super().save(*args, **kwargs)
 
     def get_specs_list(self):
@@ -91,6 +97,26 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f"{self.product.name} - Image {self.order}"
+
+
+class Review(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey("users.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="reviews")
+    name = models.CharField(max_length=120)
+    rating = models.PositiveSmallIntegerField(default=5)
+    title = models.CharField(max_length=160, blank=True)
+    comment = models.TextField()
+    image_url = models.URLField(blank=True, null=True, help_text="Optional image URL for the review")
+    video_url = models.URLField(blank=True, null=True, help_text="Optional video URL for the review")
+    is_verified_purchase = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.product.name} review by {self.name}"
 
 
 class Inventory(models.Model):

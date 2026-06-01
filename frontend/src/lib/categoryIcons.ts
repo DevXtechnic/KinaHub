@@ -1,11 +1,17 @@
 import {
   BookOpen,
+  Bike,
+  Camera,
   Dumbbell,
   Gamepad2,
   Headphones,
   Home as HomeIcon,
   Laptop,
+  NotebookPen,
   PlugZap,
+  PawPrint,
+  Recycle,
+  GraduationCap,
   Shirt,
   ShoppingBasket,
   Smartphone,
@@ -28,6 +34,12 @@ const categoryIconMap = {
   appliances: PlugZap,
   sports: Dumbbell,
   books: BookOpen,
+  cameras: Camera,
+  school: GraduationCap,
+  stationery: NotebookPen,
+  pets: PawPrint,
+  'automotive-bikes': Bike,
+  'eco-sustainable': Recycle,
 };
 
 export function getCategoryIcon(slug: string) {

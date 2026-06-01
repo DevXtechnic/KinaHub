@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Minus, Plus, ShieldCheck, ShoppingBag, Star, Store, Truck } from 'lucide-react';
+import { ArrowLeft, Camera, Check, Film, Minus, Plus, ShieldCheck, ShoppingBag, Star, Store, Truck, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { API, formatPrice, price, productImage } from '../lib/products';
-import type { ProductType } from '../lib/products';
+import { API, formatDate, formatPrice, price, productImage } from '../lib/products';
+import type { ProductType, ReviewType } from '../lib/products';
 import { useCart } from '../context/CartContext';
 import { useTranslation } from '../i18n/LocaleContext';
 import { categoryName } from '../lib/categoryText';
+import AiInsightPanel from '../components/AiInsightPanel';
+import { productAiSummary } from '../lib/ai';
 
 export default function ProductDetails() {
   const { slug } = useParams();
@@ -17,6 +20,22 @@ export default function ProductDetails() {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const [reviews, setReviews] = useState<ReviewType[]>([]);
+  const [reviewLoading, setReviewLoading] = useState(true);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const [reviewForm, setReviewForm] = useState({
+    name: '',
+    rating: 5,
+    title: '',
+    comment: '',
+    image_url: '',
+    video_url: '',
+  });
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
 
   function handleAddToCart() {
     if (!product) return;
@@ -28,6 +47,7 @@ export default function ProductDetails() {
   useEffect(() => {
     if (!slug) return;
 
+    setReviewLoading(true);
     fetch(`${API}/items/${slug}/`)
       .then((response) => {
         if (!response.ok) throw new Error('Product not found');
@@ -37,6 +57,31 @@ export default function ProductDetails() {
       .catch(() => setProduct(null))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  useEffect(() => {
+    if (!slug) return;
+
+    fetch(`${API}/reviews/?product=${encodeURIComponent(slug)}`)
+      .then((response) => response.json())
+      .then((data: ReviewType[]) => setReviews(Array.isArray(data) ? data : []))
+      .catch(() => setReviews([]))
+      .finally(() => setReviewLoading(false));
+  }, [slug]);
+
+  const reviewStats = useMemo(() => {
+    if (!reviews.length) {
+      return {
+        average: Number(product?.average_rating || product?.rating || 0),
+        count: Number(product?.review_count || 0),
+      };
+    }
+
+    const average = reviews.reduce((sum, review) => sum + Number(review.rating), 0) / reviews.length;
+    return {
+      average,
+      count: reviews.length,
+    };
+  }, [product?.average_rating, product?.rating, product?.review_count, reviews]);
 
   if (loading) {
     return (
@@ -77,6 +122,50 @@ export default function ProductDetails() {
 
   const image = productImage(product);
   const subtotal = price(product) * quantity;
+
+  async function submitReview(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!product) return;
+
+    const comment = reviewForm.comment.trim();
+    const name = reviewForm.name.trim();
+    if (!name || !comment) {
+      setReviewError(t('products.reviewRequired', { defaultValue: 'Add your name and review first.' }));
+      return;
+    }
+
+    setReviewError('');
+    setReviewSubmitting(true);
+    try {
+      const response = await fetch(`${API}/reviews/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product: product.slug,
+          name,
+          rating: reviewForm.rating,
+          title: reviewForm.title.trim(),
+          comment,
+          image_url: reviewForm.image_url.trim() || undefined,
+          video_url: reviewForm.video_url.trim() || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit review');
+      }
+
+      const created = (await response.json()) as ReviewType;
+      setReviews((current) => [created, ...current]);
+      setReviewForm({ name: '', rating: 5, title: '', comment: '', image_url: '', video_url: '' });
+      setImagePreview(null);
+      setVideoPreview(null);
+    } catch {
+      setReviewError(t('products.reviewSubmitError', { defaultValue: 'Could not submit review right now.' }));
+    } finally {
+      setReviewSubmitting(false);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
@@ -130,6 +219,10 @@ export default function ProductDetails() {
               </Link>
             )}
             <p className="mt-4 leading-7 text-secondary">{product.description}</p>
+
+            <div className="mt-4">
+              <AiInsightPanel title="Product AI summary" insights={productAiSummary(product)} compact />
+            </div>
 
             <div className="mt-6 flex items-baseline gap-3">
               <span className="text-2xl font-black text-primary sm:text-3xl">{formatPrice(price(product))}</span>
@@ -229,6 +322,203 @@ export default function ProductDetails() {
           )}
         </aside>
       </div>
+
+      <section className="mt-8 rounded-lg border border-border bg-surface p-5 shadow-sm sm:mt-10 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black tracking-tight">{t('products.reviewsTitle', { defaultValue: 'Ratings & reviews' })}</h2>
+            <p className="mt-1 text-sm text-secondary">
+              {reviewStats.count > 0
+                ? `${reviewStats.count} ${t('products.reviewsWord', { defaultValue: 'reviews' })} · ${reviewStats.average.toFixed(1)} / 5`
+                : t('products.noReviewsYet', { defaultValue: 'No reviews yet. Be the first to leave one.' })}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-2">
+            <Star className="h-4 w-4 fill-warning text-warning" />
+            <span className="font-semibold">{reviewStats.average.toFixed(1)}</span>
+            <span className="text-sm text-secondary">({reviewStats.count})</span>
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[360px_1fr]">
+          <form onSubmit={submitReview} className="rounded-lg border border-border bg-background p-4">
+            <h3 className="text-base font-bold">{t('products.writeReview', { defaultValue: 'Write a review' })}</h3>
+            <div className="mt-4 grid gap-3">
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold">{t('products.yourName', { defaultValue: 'Your name' })}</span>
+                <input
+                  value={reviewForm.name}
+                  onChange={(event) => setReviewForm((current) => ({ ...current, name: event.target.value }))}
+                  className="h-11 w-full rounded-md border border-border bg-surface px-3 text-base outline-none focus:border-accent"
+                  placeholder={t('auth.namePlaceholder', { defaultValue: 'Ram Shah' })}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold">{t('products.rating', { defaultValue: 'Rating' })}</span>
+                <select
+                  value={reviewForm.rating}
+                  onChange={(event) => setReviewForm((current) => ({ ...current, rating: Number(event.target.value) }))}
+                  className="h-11 w-full rounded-md border border-border bg-surface px-3 text-base outline-none focus:border-accent"
+                >
+                  {[5, 4, 3, 2, 1].map((value) => (
+                    <option key={value} value={value}>
+                      {value} / 5
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold">{t('products.reviewTitle', { defaultValue: 'Title' })}</span>
+                <input
+                  value={reviewForm.title}
+                  onChange={(event) => setReviewForm((current) => ({ ...current, title: event.target.value }))}
+                  className="h-11 w-full rounded-md border border-border bg-surface px-3 text-base outline-none focus:border-accent"
+                  placeholder={t('products.reviewTitlePlaceholder', { defaultValue: 'Short summary' })}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold">{t('products.reviewComment', { defaultValue: 'Review' })}</span>
+                <textarea
+                  value={reviewForm.comment}
+                  onChange={(event) => setReviewForm((current) => ({ ...current, comment: event.target.value }))}
+                  className="min-h-32 w-full rounded-md border border-border bg-surface px-3 py-3 text-base outline-none focus:border-accent"
+                  placeholder={t('products.reviewCommentPlaceholder', { defaultValue: 'Tell others what you thought about the product.' })}
+                />
+              </label>
+
+              {/* Media attachment section */}
+              <div className="space-y-3">
+                <span className="block text-sm font-semibold">Attachments (optional)</span>
+                <div className="flex flex-wrap gap-3">
+                  {/* Image attach */}
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-border bg-surface px-3 py-2.5 text-sm text-secondary hover:border-accent hover:text-accent transition-colors">
+                      <Camera className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{imagePreview ? 'Image attached' : 'Add photo'}</span>
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const url = URL.createObjectURL(file);
+                            setImagePreview(url);
+                            setReviewForm(c => ({ ...c, image_url: url }));
+                          }
+                        }}
+                      />
+                    </label>
+                    {imagePreview && (
+                      <div className="relative mt-2 inline-block">
+                        <img src={imagePreview} alt="Preview" className="h-20 w-20 rounded-md object-cover border border-border" />
+                        <button type="button" onClick={() => { setImagePreview(null); setReviewForm(c => ({ ...c, image_url: '' })); if (imageInputRef.current) imageInputRef.current.value = ''; }} className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-sm hover:bg-red-600">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {/* Video attach */}
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-border bg-surface px-3 py-2.5 text-sm text-secondary hover:border-accent hover:text-accent transition-colors">
+                      <Film className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{videoPreview ? 'Video attached' : 'Add video (max 2 min)'}</span>
+                      <input
+                        ref={videoInputRef}
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const url = URL.createObjectURL(file);
+                          // Validate duration <= 2 minutes
+                          const vid = document.createElement('video');
+                          vid.preload = 'metadata';
+                          vid.onloadedmetadata = () => {
+                            URL.revokeObjectURL(vid.src);
+                            if (vid.duration > 120) {
+                              setReviewError('Video must be under 2 minutes.');
+                              if (videoInputRef.current) videoInputRef.current.value = '';
+                              return;
+                            }
+                            setReviewError('');
+                            const objUrl = URL.createObjectURL(file);
+                            setVideoPreview(objUrl);
+                            setReviewForm(c => ({ ...c, video_url: objUrl }));
+                          };
+                          vid.src = url;
+                        }}
+                      />
+                    </label>
+                    {videoPreview && (
+                      <div className="relative mt-2 inline-block">
+                        <video src={videoPreview} className="h-20 w-32 rounded-md object-cover border border-border" muted />
+                        <button type="button" onClick={() => { setVideoPreview(null); setReviewForm(c => ({ ...c, video_url: '' })); if (videoInputRef.current) videoInputRef.current.value = ''; }} className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-sm hover:bg-red-600">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={reviewSubmitting}
+                className="inline-flex h-11 items-center justify-center rounded-md bg-accent px-4 text-sm font-semibold text-background transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {reviewSubmitting ? t('common.saving', { defaultValue: 'Saving...' }) : t('products.submitReview', { defaultValue: 'Submit review' })}
+              </button>
+              {reviewError && <p className="text-sm text-red-500">{reviewError}</p>}
+            </div>
+          </form>
+
+          <div className="space-y-3">
+            {reviewLoading ? (
+              <div className="rounded-lg border border-border bg-background p-4 text-sm text-secondary">
+                {t('common.loading', { defaultValue: 'Loading...' })}
+              </div>
+            ) : reviews.length > 0 ? (
+              reviews.map((review) => (
+                <article key={review.id} className="rounded-lg border border-border bg-background p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-primary">{review.name}</p>
+                      <p className="text-xs text-secondary">{formatDate(review.created_at)}</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-warning">
+                      <Star className="h-4 w-4 fill-current" />
+                      <span className="text-sm font-semibold text-primary">{review.rating}.0</span>
+                    </div>
+                  </div>
+                  {review.title && <h4 className="mt-3 font-semibold text-primary">{review.title}</h4>}
+                  <p className="mt-2 leading-7 text-secondary">{review.comment}</p>
+                  {(review.image_url || review.video_url) && (
+                    <div className="mt-4 flex gap-2 overflow-x-auto pb-2 snap-x hide-scrollbar">
+                      {review.video_url && (
+                        <div className="relative h-48 w-32 shrink-0 snap-center overflow-hidden rounded-md bg-black">
+                          <video src={review.video_url} className="h-full w-full object-cover" controls playsInline loop muted />
+                        </div>
+                      )}
+                      {review.image_url && (
+                        <div className="relative h-48 w-32 shrink-0 snap-center overflow-hidden rounded-md bg-muted">
+                          <img src={review.image_url} alt="Review attachment" className="h-full w-full object-cover" loading="lazy" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </article>
+              ))
+            ) : (
+              <div className="rounded-lg border border-border bg-background p-4 text-sm text-secondary">
+                {t('products.noReviewsYet', { defaultValue: 'No reviews yet. Be the first to leave one.' })}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

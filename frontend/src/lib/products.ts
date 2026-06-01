@@ -52,6 +52,23 @@ export interface ProductType {
   is_featured: boolean;
   is_active: boolean;
   images: ProductImageType[];
+  reviews?: ReviewType[];
+  review_count?: number;
+  average_rating?: number;
+}
+
+export interface ReviewType {
+  id: number;
+  product: number;
+  name: string;
+  rating: number;
+  title: string;
+  comment: string;
+  image_url?: string;
+  video_url?: string;
+  is_verified_purchase: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface StoreType {

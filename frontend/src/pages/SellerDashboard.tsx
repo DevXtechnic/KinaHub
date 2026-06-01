@@ -4,6 +4,8 @@ import { apiRequest } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../lib/products';
 import { useTranslation } from '../i18n/LocaleContext';
+import AiInsightPanel from '../components/AiInsightPanel';
+import { sellerAiOverview } from '../lib/ai';
 
 interface SellerSummary {
   store: { name: string } | null;
@@ -40,6 +42,8 @@ export default function SellerDashboard() {
         <h1 className="mt-2 text-2xl font-black tracking-tight">{summary?.store?.name || t('dashboard.storeDashboard', { defaultValue: 'Store dashboard' })}</h1>
         <p className="mt-2 text-secondary">{t('dashboard.sellerDescription', { defaultValue: 'Manage catalog, inventory, orders, customer records, and sales performance.' })}</p>
       </section>
+
+      <AiInsightPanel title="AI CRM overview" insights={sellerAiOverview(summary)} />
 
       <div className="grid gap-4 md:grid-cols-4">
         {cards.map((card) => {

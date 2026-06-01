@@ -1,5 +1,10 @@
 """Seed script - run with: python manage.py shell < seed_dukan.py"""
+import json
 import os
+import urllib.request
+from decimal import Decimal
+from urllib.parse import urlparse
+
 import django
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
@@ -7,7 +12,7 @@ django.setup()
 
 from django.contrib.auth import get_user_model
 from crm.models import CustomerRecord, SellerRecord, Ticket, Notification
-from products.models import Category, Brand, Inventory, Product, ProductImage
+from products.models import Category, Brand, Inventory, Product, ProductImage, Review
 from sellers.models import SellerProfile, Store
 from users.models import Address, CustomerProfile
 
@@ -86,12 +91,14 @@ barat_store, _ = Store.objects.update_or_create(
         "map_url": "https://www.google.com/maps/search/?api=1&query=Pabitranagar%20Gongabu%20Kathmandu",
         "support_email": "seller@dukan.local",
         "support_phone": "9811111111",
+        "logo_url": "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
+        "banner_url": "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1600&q=80",
         "is_active": True,
     },
 )
 SellerRecord.objects.update_or_create(seller=seller_profile, defaults={"status": "verified", "risk_level": "normal"})
 
-def ensure_seller_store(email, password, business_name, phone, description):
+def ensure_seller_store(email, password, business_name, phone, description, logo_url="", banner_url=""):
     user, _ = User.objects.update_or_create(
         email=email,
         defaults={
@@ -127,6 +134,8 @@ def ensure_seller_store(email, password, business_name, phone, description):
             "map_url": "https://www.google.com/maps/search/?api=1&query=" + business_name.replace(" ", "%20") + "%20Kathmandu",
             "support_email": email,
             "support_phone": phone,
+            "logo_url": logo_url,
+            "banner_url": banner_url,
             "is_active": True,
         },
     )
@@ -139,6 +148,8 @@ tech_store = ensure_seller_store(
     "New Road Tech Suppliers",
     "9822222222",
     "Mobile, laptop, audio, gaming, and networking seller from New Road.",
+    logo_url="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=80",
+    banner_url="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1600&q=80",
 )
 fashion_store = ensure_seller_store(
     "thamel.style@dukan.local",
@@ -146,6 +157,8 @@ fashion_store = ensure_seller_store(
     "Thamel Style House",
     "9833333333",
     "Fashion, sports, books, and lifestyle shop from Thamel.",
+    logo_url="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&q=80",
+    banner_url="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1600&q=80",
 )
 home_store = ensure_seller_store(
     "baneshwor.home@dukan.local",
@@ -153,6 +166,80 @@ home_store = ensure_seller_store(
     "Baneshwor Home Mart",
     "9844444444",
     "Home, appliance, beauty, and household essentials seller from Baneshwor.",
+    logo_url="https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=600&q=80",
+    banner_url="https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=1600&q=80",
+)
+books_store = ensure_seller_store(
+    "books@dukan.local",
+    "seller123",
+    "Boudha Books & Stationery",
+    "9855555555",
+    "Books, exam prep, stationery, and school gear from Boudha.",
+    logo_url="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80",
+    banner_url="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1600&q=80",
+)
+sports_store = ensure_seller_store(
+    "sports@dukan.local",
+    "seller123",
+    "Kalanki Sports Hub",
+    "9866666666",
+    "Fitness, football, basketball, and outdoor training gear from Kalanki.",
+    logo_url="https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=600&q=80",
+    banner_url="https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1600&q=80",
+)
+console_store = ensure_seller_store(
+    "console@dukan.local",
+    "seller123",
+    "New Road Console Garage",
+    "9877777777",
+    "Consoles, gaming chairs, controllers, and maker gear from New Road.",
+    logo_url="https://images.unsplash.com/photo-1605901309584-818e25960a8f?auto=format&fit=crop&w=600&q=80",
+    banner_url="https://images.unsplash.com/photo-1605901309584-818e25960a8f?auto=format&fit=crop&w=1600&q=80",
+)
+auto_store = ensure_seller_store(
+    "auto@dukan.local",
+    "seller123",
+    "Teku Auto & Bike Store",
+    "9888888888",
+    "Helmets, bike accessories, and riding gear from Teku.",
+    logo_url="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80",
+    banner_url="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1600&q=80",
+)
+eco_store = ensure_seller_store(
+    "eco@dukan.local",
+    "seller123",
+    "Patan Eco & Pet Mart",
+    "9899999999",
+    "Reusable goods, bamboo products, pet food, and solar gadgets from Patan.",
+    logo_url="https://images.unsplash.com/photo-1472141521881-95d0f57e1f47?auto=format&fit=crop&w=600&q=80",
+    banner_url="https://images.unsplash.com/photo-1472141521881-95d0f57e1f47?auto=format&fit=crop&w=1600&q=80",
+)
+fake_store = ensure_seller_store(
+    "fakestore@dukan.local",
+    "seller123",
+    "Fake Store Select",
+    "9800000001",
+    "Marketplace-style general store sourced from Fake Store API.",
+    logo_url="https://images.unsplash.com/photo-1556742205-9ba1fefe7f4d?auto=format&fit=crop&w=600&q=80",
+    banner_url="https://images.unsplash.com/photo-1556742205-9ba1fefe7f4d?auto=format&fit=crop&w=1600&q=80",
+)
+dummy_store = ensure_seller_store(
+    "dummyjson@dukan.local",
+    "seller123",
+    "DummyJSON Bazaar",
+    "9800000002",
+    "Beauty, furniture, and grocery products sourced from DummyJSON.",
+    logo_url="https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=600&q=80",
+    banner_url="https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1600&q=80",
+)
+platzi_store = ensure_seller_store(
+    "platzi@dukan.local",
+    "seller123",
+    "Platzi Market",
+    "9800000003",
+    "Fashion, electronics, and furniture sourced from Platzi Fake Store API.",
+    logo_url="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80",
+    banner_url="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1600&q=80",
 )
 Ticket.objects.get_or_create(
     customer=customer,
@@ -166,6 +253,65 @@ Notification.objects.get_or_create(
     defaults={"notification_type": "status", "body": "Your demo store has CRM and product tools enabled."},
 )
 print("Demo accounts ready: customer@dukan.local/customer123, seller@dukan.local/seller123, admin@dukan.local/admin")
+
+
+def fetch_json(url):
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return json.loads(response.read().decode())
+
+
+def download_image(source_url, target_filename):
+    os.makedirs(product_media_dir, exist_ok=True)
+    target_path = os.path.join(product_media_dir, target_filename)
+    if os.path.exists(target_path):
+        return f"/product-media/{target_filename}"
+
+    request = urllib.request.Request(source_url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(request, timeout=30) as response, open(target_path, "wb") as output:
+        output.write(response.read())
+
+    return f"/product-media/{target_filename}"
+
+
+review_people = [
+    ("Ram Shah", "Overall a solid pick.", True),
+    ("Sita Karki", "Arrived quickly and matched the description.", False),
+    ("Aarav Shrestha", "Good value for the price in Kathmandu.", True),
+    ("Nisha Thapa", "Packaging was fine and the product works well.", False),
+    ("Bikram Gurung", "Better than expected from a local seller.", True),
+    ("Mina Lama", "Would buy again from the same store.", False),
+]
+
+
+def seed_fake_reviews(product):
+    existing = Review.objects.filter(product=product).count()
+    if existing:
+        return
+
+    base_rating = float(product.rating or 4.0)
+    review_ratings = [
+        max(1, min(5, round(base_rating + 0.2))),
+        max(1, min(5, round(base_rating))),
+        max(1, min(5, round(base_rating - 0.2))),
+    ]
+    created_reviews = []
+    for index, rating in enumerate(review_ratings):
+        # keep reviews short and human-looking for the demo catalog
+        name, prefix, verified = review_people[(product.id + index) % len(review_people)]
+        review = Review.objects.create(
+            product=product,
+            user=None,
+            name=name,
+            rating=rating,
+            title=prefix,
+            comment=f"{prefix} It works well for {product.category.name.lower()} and feels like a good local buy.",
+            is_verified_purchase=verified,
+        )
+        created_reviews.append(review)
+
+    average_rating = round(sum(review.rating for review in created_reviews) / len(created_reviews), 2)
+    Product.objects.filter(pk=product.pk).update(rating=average_rating)
 
 category_rows = [
     ("Mobiles", "Phones, chargers, cases, and wearable tech"),
@@ -181,6 +327,12 @@ category_rows = [
     ("Appliances", "Useful electronics for home and hostel rooms"),
     ("Sports", "Fitness, outdoor, and training products"),
     ("Books", "Study, fiction, business, and stationery"),
+    ("Cameras", "Camera bodies, lenses, tripods, and accessories"),
+    ("School", "Bags, learning kits, calculators, and class gear"),
+    ("Stationery", "Pens, notebooks, organizers, and desk tools"),
+    ("Pets", "Food, toys, grooming, and daily pet care"),
+    ("Automotive & Bikes", "Helmets, lights, mounts, and ride accessories"),
+    ("Eco & Sustainable", "Reusable bottles, bamboo goods, and solar gadgets"),
 ]
 
 cats = {}
@@ -200,6 +352,9 @@ brand_names = [
     "Keychron", "CalDigit", "Nike", "Puma", "The Ordinary", "CG", "Philips",
     "Goldstar", "Bhat-Bhateni", "Penguin", "Himalayan Java", "Dukan Basics",
     "Wai Wai", "Dettol", "Fortune", "Aashirvaad",
+    "PlayStation", "Xbox", "Raspberry Pi", "Arduino", "Canon", "Adidas",
+    "Hydro Flask", "CamelBak", "PetSafe", "EcoFlow", "Apsara", "Nataraj",
+    "Moleskine", "Classmate", "Bamboo Earth", "Casio",
 ]
 
 brands = {}
@@ -391,7 +546,7 @@ products_data = [
         "rating": 4.6,
         "tag": "Kitchen",
         "is_featured": True,
-        "image_url": "/product-media/philips-airfryer-3000-series.jpg",
+        "image_url": "/product-media/philips-air-fryer-41l.jpg",
         "description": "Compact air fryer for fast snacks and low-oil cooking.",
         "specifications": "Capacity: 4.1L\nPower: 1400W\nWarranty: 1 year\nUse: Kitchen",
     },
@@ -503,7 +658,7 @@ products_data = [
         "rating": 4.6,
         "tag": "Creator",
         "is_featured": True,
-        "image_url": "/product-media/dell_xps_15.png",
+        "image_url": "/product-media/dell-xps-15.png",
         "description": "Stunning InfinityEdge display in a compact design. Perfect for creators and professionals.",
         "specifications": "Processor: Intel Core i7-13700H\nRAM: 16GB DDR5\nStorage: 512GB NVMe SSD\nDisplay: 15.6 inch OLED 3.5K\nGPU: NVIDIA RTX 4050\nWeight: 1.86 kg",
     },
@@ -517,7 +672,7 @@ products_data = [
         "rating": 4.7,
         "tag": "ANC",
         "is_featured": True,
-        "image_url": "/product-media/airpods_pro_3.png",
+        "image_url": "/product-media/airpods-pro-3.png",
         "description": "Active Noise Cancellation, Adaptive Transparency, and Personalized Spatial Audio with head tracking.",
         "specifications": "Driver: Custom high-excursion\nANC: Active Noise Cancellation\nBattery: 6 hours, 30 with case\nConnectivity: Bluetooth 5.3\nWater Resistance: IPX4",
     },
@@ -531,7 +686,7 @@ products_data = [
         "rating": 4.8,
         "tag": "Premium",
         "is_featured": True,
-        "image_url": "/product-media/sony_wh1000xm6.png",
+        "image_url": "/product-media/sony-wh-1000xm6.png",
         "description": "Industry-leading noise cancellation with exceptional sound quality and long battery life.",
         "specifications": "Driver: 40mm\nANC: Adaptive\nBattery: 40 hours\nCodecs: LDAC, AAC, SBC\nWeight: 252g\nFolding: Yes",
     },
@@ -545,7 +700,7 @@ products_data = [
         "rating": 4.5,
         "tag": "Tablet",
         "is_featured": False,
-        "image_url": "/product-media/tablet.jpg",
+        "image_url": "/product-media/xiaomi-pad-7-pro.jpg",
         "description": "Premium tablet with a bright 11.2 inch 144Hz display, Snapdragon chip, and massive battery.",
         "specifications": "Display: 11.2 inch IPS 144Hz\nProcessor: Snapdragon 8s Gen 3\nRAM: 8GB\nStorage: 256GB\nBattery: 10000mAh\nCharging: 67W",
     },
@@ -559,7 +714,7 @@ products_data = [
         "rating": 4.5,
         "tag": "Keyboard",
         "is_featured": False,
-        "image_url": "/product-media/keyboard.jpg",
+        "image_url": "/product-media/logitech-mx-mechanical.jpg",
         "description": "Wireless mechanical keyboard with smart backlighting and multi-device connectivity.",
         "specifications": "Switches: Tactile Quiet\nBacklight: Smart Illumination\nBattery: Up to 15 months\nConnectivity: Bluetooth + USB Receiver\nLayout: Full Size",
     },
@@ -573,7 +728,7 @@ products_data = [
         "rating": 4.4,
         "tag": "Desktop",
         "is_featured": True,
-        "image_url": "/product-media/desktop.jpg",
+        "image_url": "/product-media/hp-pavilion-gaming-desktop.jpg",
         "description": "Powerful gaming desktop with RTX graphics for modern games and creative workloads.",
         "specifications": "Processor: AMD Ryzen 7 7700X\nGPU: NVIDIA RTX 4060 8GB\nRAM: 16GB DDR5\nStorage: 1TB NVMe SSD\nPSU: 500W\nOS: Windows 11",
     },
@@ -587,7 +742,7 @@ products_data = [
         "rating": 4.6,
         "tag": "Storage",
         "is_featured": False,
-        "image_url": "/product-media/samsung-t7-shield-ssd-2tb_accurate.jpg",
+        "image_url": "/product-media/samsung-t7-shield-ssd-2tb.jpg",
         "description": "Portable SSD with rugged design and USB 3.2 Gen 2 speeds up to 1,050MB/s.",
         "specifications": "Capacity: 2TB\nInterface: USB 3.2 Gen 2\nRead Speed: 1050 MB/s\nWrite Speed: 1000 MB/s\nDurability: IP65, 3m drop\nWeight: 98g",
     },
@@ -601,7 +756,7 @@ products_data = [
         "rating": 4.4,
         "tag": "Wearable",
         "is_featured": False,
-        "image_url": "/product-media/band.jpg",
+        "image_url": "/product-media/xiaomi-smart-band-9.jpg",
         "description": "AMOLED fitness band with sport modes, SpO2 monitoring, and long battery life.",
         "specifications": "Display: 1.62 inch AMOLED\nBattery: 21 days\nWater Resistance: 5ATM\nSensors: Heart Rate, SpO2, Accelerometer\nWeight: 15.8g",
     },
@@ -615,7 +770,7 @@ products_data = [
         "rating": 4.6,
         "tag": "Network",
         "is_featured": False,
-        "image_url": "/product-media/ubiquiti-unifi-dream-machine-pro_accurate.jpg",
+        "image_url": "/product-media/ubiquiti-unifi-dream-machine-pro.jpg",
         "description": "All-in-one enterprise network console with Dual WAN, 10G SFP+, and advanced firewall tools.",
         "specifications": "WAN: Dual WAN\nPorts: 10G SFP+\nSecurity: Advanced firewall\nUse: Store, office, and creator studio networks",
     },
@@ -629,7 +784,7 @@ products_data = [
         "rating": 4.5,
         "tag": "WiFi 6",
         "is_featured": False,
-        "image_url": "/product-media/tp-link-deco-ax3000-wifi-6-mesh_accurate.jpg",
+        "image_url": "/product-media/tp-link-deco-ax3000-wifi-6-mesh.jpg",
         "description": "WiFi 6 mesh system with seamless roaming, low latency, and wide home coverage.",
         "specifications": "Speed: AX3000\nWireless: WiFi 6\nCoverage: Mesh roaming\nUse: Home, hostel, and small office",
     },
@@ -643,7 +798,7 @@ products_data = [
         "rating": 4.3,
         "tag": "Desk",
         "is_featured": False,
-        "image_url": "/product-media/corsair_pad.jpg",
+        "image_url": "/product-media/corsair-mm300-pro-extended-mouse-pad.jpg",
         "description": "Spill-proof extended gaming mouse pad with a smooth surface for full desk setups.",
         "specifications": "Surface: Textile weave\nSize: Extended\nBase: Anti-skid rubber\nUse: Gaming and developer desks",
     },
@@ -671,7 +826,7 @@ products_data = [
         "rating": 4.4,
         "tag": "Storage",
         "is_featured": False,
-        "image_url": "/product-media/sandisk-1tb-dual-drive-usb-c_accurate.jpg",
+        "image_url": "/product-media/sandisk-1tb-dual-drive-usb-c.jpg",
         "description": "Dual USB-C and USB-A flash drive for moving files between phones, tablets, Macs, and PCs.",
         "specifications": "Capacity: 1TB\nConnectors: USB-C and USB-A\nUse: Phone and laptop file transfer\nDesign: Reversible dual drive",
     },
@@ -685,7 +840,7 @@ products_data = [
         "rating": 4.7,
         "tag": "Custom",
         "is_featured": False,
-        "image_url": "/product-media/keychron-q1-pro-mechanical-keyboard_accurate.jpg",
+        "image_url": "/product-media/keychron-q1-pro-mechanical-keyboard.jpg",
         "description": "Full-metal QMK/VIA wireless custom mechanical keyboard for heavy typing and coding.",
         "specifications": "Build: Full metal\nFirmware: QMK/VIA\nConnection: Wireless and wired\nUse: Coding, writing, and desk setups",
     },
@@ -699,7 +854,7 @@ products_data = [
         "rating": 4.8,
         "tag": "Dock",
         "is_featured": False,
-        "image_url": "/product-media/caldigit-ts4-thunderbolt-4-dock_accurate.jpg",
+        "image_url": "/product-media/caldigit-ts4-thunderbolt-4-dock.jpg",
         "description": "Thunderbolt 4 dock with 18 ports, 98W charging, and 2.5GbE for full workstation setups.",
         "specifications": "Ports: 18\nCharging: 98W\nNetwork: 2.5GbE\nConnection: Thunderbolt 4",
     },
@@ -769,7 +924,7 @@ products_data = [
         "rating": 4.8,
         "tag": "Book",
         "is_featured": True,
-        "image_url": "/product-media/atomic_habits.jpg",
+        "image_url": "/product-media/atomic-habits.jpg",
         "description": "A practical book on building better habits and systems.",
         "specifications": "Format: Paperback\nLanguage: English\nPages: 320\nCategory: Self improvement",
     },
@@ -789,30 +944,678 @@ products_data = [
     },
 ]
 
+extra_products = [
+    {
+        "name": "Atomic Habits",
+        "category": "Books",
+        "brand": "Penguin",
+        "price": 1199,
+        "discount_price": 999,
+        "stock": 32,
+        "rating": 4.8,
+        "tag": "Book",
+        "is_featured": False,
+        "store": "books",
+        "image_url": "/product-media/atomic-habits.jpg",
+        "description": "A second local store listing of the same book for Kathmandu readers.",
+        "specifications": "Format: Paperback\nLanguage: English\nPages: 320\nCategory: Self improvement",
+    },
+    {
+        "name": "SEE Entrance Prep Books Pack",
+        "category": "Books",
+        "brand": "Penguin",
+        "price": 1599,
+        "discount_price": 1399,
+        "stock": 25,
+        "rating": 4.7,
+        "tag": "Exam",
+        "is_featured": True,
+        "store": "books",
+        "image_url": "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=900&q=80",
+        "description": "Exam-focused prep books for SEE and local entrance tests.",
+        "specifications": "Format: Paperback\nUse: Exam prep\nStore: Boudha Books & Stationery\nDelivery: Kathmandu valley",
+    },
+    {
+        "name": "Programming Books Bundle",
+        "category": "Books",
+        "brand": "Penguin",
+        "price": 1999,
+        "discount_price": 1799,
+        "stock": 18,
+        "rating": 4.6,
+        "tag": "Code",
+        "is_featured": True,
+        "store": "books",
+        "image_url": "https://images.unsplash.com/photo-1519682337058-a94d519337bc?auto=format&fit=crop&w=900&q=80",
+        "description": "Python, web, and data books for students and junior developers.",
+        "specifications": "Format: Paperback\nUse: Programming study\nPackage: Bundle\nDelivery: Kathmandu valley",
+    },
+    {
+        "name": "Study Lamp LED Desk Light",
+        "category": "School",
+        "brand": "Philips",
+        "price": 1799,
+        "discount_price": 1499,
+        "stock": 44,
+        "rating": 4.5,
+        "tag": "Study",
+        "is_featured": False,
+        "store": "books",
+        "image_url": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80",
+        "description": "Bright adjustable lamp for desks, study tables, and hostel rooms.",
+        "specifications": "Light: LED\nUse: Study desk\nPower: USB\nStore: Boudha Books & Stationery",
+    },
+    {
+        "name": "Scientific Calculator Pro",
+        "category": "School",
+        "brand": "Casio",
+        "price": 1999,
+        "discount_price": 1699,
+        "stock": 60,
+        "rating": 4.7,
+        "tag": "Math",
+        "is_featured": False,
+        "store": "books",
+        "image_url": "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=900&q=80",
+        "description": "Scientific calculator for class, entrance prep, and engineering basics.",
+        "specifications": "Functions: 240+\nPower: Solar and battery\nUse: School and college",
+    },
+    {
+        "name": "School Bag Urban Pro",
+        "category": "School",
+        "brand": "Dukan Basics",
+        "price": 2899,
+        "discount_price": 2399,
+        "stock": 28,
+        "rating": 4.4,
+        "tag": "School",
+        "is_featured": False,
+        "store": "books",
+        "image_url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80",
+        "description": "Durable school bag for books, notebooks, and daily commute.",
+        "specifications": "Compartments: 3\nMaterial: Water resistant\nUse: School and tuition",
+    },
+    {
+        "name": "Pocket Notebook Set",
+        "category": "Stationery",
+        "brand": "Classmate",
+        "price": 499,
+        "discount_price": 399,
+        "stock": 120,
+        "rating": 4.2,
+        "tag": "Notes",
+        "is_featured": False,
+        "store": "books",
+        "image_url": "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80",
+        "description": "Compact notebook set for class notes and quick reminders.",
+        "specifications": "Pack: 6\nPages: 80 each\nPaper: Ruled\nUse: Notes",
+    },
+    {
+        "name": "Gel Pen Pack",
+        "category": "Stationery",
+        "brand": "Apsara",
+        "price": 299,
+        "discount_price": 249,
+        "stock": 150,
+        "rating": 4.1,
+        "tag": "Stationery",
+        "is_featured": False,
+        "store": "books",
+        "image_url": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=900&q=80",
+        "description": "Smooth-writing gel pens for school, office, and journaling.",
+        "specifications": "Pack: 10\nInk: Blue and black\nUse: Daily writing",
+    },
+    {
+        "name": "Football Training Ball",
+        "category": "Sports",
+        "brand": "Nike",
+        "price": 2499,
+        "discount_price": 2199,
+        "stock": 24,
+        "rating": 4.5,
+        "tag": "Football",
+        "is_featured": True,
+        "store": "sports",
+        "image_url": "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=900&q=80",
+        "description": "Training football for school grounds, futsal courts, and local matches.",
+        "specifications": "Size: 5\nMaterial: Synthetic leather\nUse: Training and matches",
+    },
+    {
+        "name": "Basketball Training Ball",
+        "category": "Sports",
+        "brand": "Adidas",
+        "price": 2799,
+        "discount_price": 2399,
+        "stock": 20,
+        "rating": 4.4,
+        "tag": "Basketball",
+        "is_featured": False,
+        "store": "sports",
+        "image_url": "https://images.unsplash.com/photo-1519861531473-9200262188bf?auto=format&fit=crop&w=900&q=80",
+        "description": "Grip-friendly basketball for indoor and outdoor play.",
+        "specifications": "Size: 7\nSurface: Outdoor rubber\nUse: Practice and casual matches",
+    },
+    {
+        "name": "Dumbbell Set 20kg",
+        "category": "Sports",
+        "brand": "Dukan Basics",
+        "price": 6999,
+        "discount_price": 5999,
+        "stock": 17,
+        "rating": 4.2,
+        "tag": "Workout",
+        "is_featured": True,
+        "store": "sports",
+        "image_url": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80",
+        "description": "Same dumbbell set sold from another store for comparison shopping.",
+        "specifications": "Total weight: 20kg\nMaterial: Cement plates\nGrip: Steel bar\nUse: Home gym",
+    },
+    {
+        "name": "Raspberry Pi 5 Starter Kit",
+        "category": "Accessories",
+        "brand": "Raspberry Pi",
+        "price": 12999,
+        "discount_price": 11999,
+        "stock": 16,
+        "rating": 4.7,
+        "tag": "Maker",
+        "is_featured": True,
+        "store": "console",
+        "image_url": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80",
+        "description": "Starter kit for coding, IoT projects, and learning electronics.",
+        "specifications": "Board: Raspberry Pi 5\nUse: Maker and learning kit\nIncludes: Board, power, cables",
+    },
+    {
+        "name": "Arduino Uno Learning Kit",
+        "category": "Accessories",
+        "brand": "Arduino",
+        "price": 8999,
+        "discount_price": 7999,
+        "stock": 20,
+        "rating": 4.6,
+        "tag": "Maker",
+        "is_featured": False,
+        "store": "console",
+        "image_url": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80",
+        "description": "Hands-on kit for robotics, sensors, and beginner electronics.",
+        "specifications": "Board: Arduino Uno\nUse: Robotics and learning\nIncludes: Starter components",
+    },
+    {
+        "name": "PlayStation 5 Digital Edition",
+        "category": "Gaming",
+        "brand": "PlayStation",
+        "price": 89999,
+        "discount_price": 83999,
+        "stock": 6,
+        "rating": 4.9,
+        "tag": "Console",
+        "is_featured": True,
+        "store": "console",
+        "image_url": "https://images.unsplash.com/photo-1605901309584-818e25960a8f?auto=format&fit=crop&w=900&q=80",
+        "description": "Next-gen console for local game buyers and gift shoppers.",
+        "specifications": "Storage: 825GB\nType: Digital edition\nUse: Gaming",
+    },
+    {
+        "name": "Xbox Series S",
+        "category": "Gaming",
+        "brand": "Xbox",
+        "price": 74999,
+        "discount_price": 69999,
+        "stock": 8,
+        "rating": 4.7,
+        "tag": "Console",
+        "is_featured": False,
+        "store": "console",
+        "image_url": "https://images.unsplash.com/photo-1605901309584-818e25960a8f?auto=format&fit=crop&w=900&q=80",
+        "description": "Compact console for 1440p gaming and entertainment.",
+        "specifications": "Storage: 512GB\nType: Digital console\nUse: Gaming and streaming",
+    },
+    {
+        "name": "Ergonomic Gaming Chair",
+        "category": "Gaming",
+        "brand": "Razer",
+        "price": 23999,
+        "discount_price": 20999,
+        "stock": 12,
+        "rating": 4.5,
+        "tag": "Setup",
+        "is_featured": False,
+        "store": "console",
+        "image_url": "https://images.unsplash.com/photo-1541558869434-2840d308329a?auto=format&fit=crop&w=900&q=80",
+        "description": "Supportive gaming chair for long desk sessions and streaming.",
+        "specifications": "Material: PU leather\nBase: Heavy-duty\nUse: Gaming and desk work",
+    },
+    {
+        "name": "Bike Helmet Pro",
+        "category": "Automotive & Bikes",
+        "brand": "Dukan Basics",
+        "price": 3999,
+        "discount_price": 3399,
+        "stock": 22,
+        "rating": 4.4,
+        "tag": "Ride",
+        "is_featured": True,
+        "store": "auto",
+        "image_url": "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80",
+        "description": "Lightweight helmet for city riders and weekend trips.",
+        "specifications": "Size: M-L\nUse: Bike riding\nSafety: Padded shell",
+    },
+    {
+        "name": "Bike Phone Holder",
+        "category": "Automotive & Bikes",
+        "brand": "Dukan Basics",
+        "price": 1299,
+        "discount_price": 999,
+        "stock": 30,
+        "rating": 4.2,
+        "tag": "Ride",
+        "is_featured": False,
+        "store": "auto",
+        "image_url": "https://images.unsplash.com/photo-1518655048521-f130df041f66?auto=format&fit=crop&w=900&q=80",
+        "description": "Handlebar phone mount for navigation and delivery riders.",
+        "specifications": "Mount: Adjustable\nUse: Bike and scooter\nFit: Universal",
+    },
+    {
+        "name": "LED Bike Light Set",
+        "category": "Automotive & Bikes",
+        "brand": "Anker",
+        "price": 1599,
+        "discount_price": 1299,
+        "stock": 34,
+        "rating": 4.3,
+        "tag": "Safety",
+        "is_featured": False,
+        "store": "auto",
+        "image_url": "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80",
+        "description": "Front and rear LED set for safer night riding.",
+        "specifications": "Mode: Flash and steady\nUse: Bicycle safety\nPower: USB rechargeable",
+    },
+    {
+        "name": "Dog Food Premium",
+        "category": "Pets",
+        "brand": "PetSafe",
+        "price": 1899,
+        "discount_price": 1699,
+        "stock": 26,
+        "rating": 4.5,
+        "tag": "Pets",
+        "is_featured": True,
+        "store": "eco",
+        "image_url": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=900&q=80",
+        "description": "Balanced dog food for daily feeding.",
+        "specifications": "Weight: 3kg\nType: Dry food\nUse: Adult dogs",
+    },
+    {
+        "name": "Cat Food Chicken",
+        "category": "Pets",
+        "brand": "PetSafe",
+        "price": 1499,
+        "discount_price": 1299,
+        "stock": 30,
+        "rating": 4.4,
+        "tag": "Pets",
+        "is_featured": False,
+        "store": "eco",
+        "image_url": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=900&q=80",
+        "description": "Chicken-flavor cat food for everyday meals.",
+        "specifications": "Weight: 2kg\nType: Dry food\nUse: Adult cats",
+    },
+    {
+        "name": "Reusable Water Bottle 1L",
+        "category": "Eco & Sustainable",
+        "brand": "Hydro Flask",
+        "price": 1899,
+        "discount_price": 1599,
+        "stock": 40,
+        "rating": 4.6,
+        "tag": "Eco",
+        "is_featured": True,
+        "store": "eco",
+        "image_url": "https://images.unsplash.com/photo-1526401485004-2aa7c5c3c1f0?auto=format&fit=crop&w=900&q=80",
+        "description": "Reusable steel bottle for school, office, gym, and travel.",
+        "specifications": "Capacity: 1L\nMaterial: Steel\nUse: Daily hydration",
+    },
+    {
+        "name": "Bamboo Lunch Box",
+        "category": "Eco & Sustainable",
+        "brand": "Bamboo Earth",
+        "price": 1599,
+        "discount_price": 1399,
+        "stock": 24,
+        "rating": 4.3,
+        "tag": "Eco",
+        "is_featured": False,
+        "store": "eco",
+        "image_url": "https://images.unsplash.com/photo-1524182576068-d6c7f4b6f3f1?auto=format&fit=crop&w=900&q=80",
+        "description": "Eco-friendly lunch box for office meals and school tiffins.",
+        "specifications": "Material: Bamboo fiber\nUse: Food storage\nLid: Secure seal",
+    },
+    {
+        "name": "Solar Power Bank",
+        "category": "Eco & Sustainable",
+        "brand": "EcoFlow",
+        "price": 4999,
+        "discount_price": 4399,
+        "stock": 18,
+        "rating": 4.2,
+        "tag": "Solar",
+        "is_featured": False,
+        "store": "eco",
+        "image_url": "https://images.unsplash.com/photo-1509395176047-4a66953fd231?auto=format&fit=crop&w=900&q=80",
+        "description": "Portable power bank with solar charging for travel and outages.",
+        "specifications": "Battery: 20000mAh\nCharge: USB-C and solar\nUse: Phones and accessories",
+    },
+    {
+        "name": "Canon EOS R50 Camera",
+        "category": "Cameras",
+        "brand": "Canon",
+        "price": 89999,
+        "discount_price": 85999,
+        "stock": 9,
+        "rating": 4.8,
+        "tag": "Camera",
+        "is_featured": True,
+        "store": "tech",
+        "image_url": "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=900&q=80",
+        "description": "Compact mirrorless camera for creators, students, and family use.",
+        "specifications": "Sensor: APS-C\nVideo: 4K\nUse: Photo and video",
+    },
+    {
+        "name": "CCTV Bullet Camera",
+        "category": "Cameras",
+        "brand": "Dukan Basics",
+        "price": 6499,
+        "discount_price": 5799,
+        "stock": 14,
+        "rating": 4.3,
+        "tag": "Security",
+        "is_featured": False,
+        "store": "tech",
+        "image_url": "https://images.unsplash.com/photo-1556656793-08538906a9f8?auto=format&fit=crop&w=900&q=80",
+        "description": "Outdoor security camera for homes and shopfronts.",
+        "specifications": "Use: Security\nMount: Wall\nVisibility: Night vision",
+    },
+    {
+        "name": "Phone Case Pack",
+        "category": "Accessories",
+        "brand": "Dukan Basics",
+        "price": 899,
+        "discount_price": 699,
+        "stock": 100,
+        "rating": 4.1,
+        "tag": "Phone",
+        "is_featured": False,
+        "store": "tech",
+        "image_url": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=80",
+        "description": "Phone case pack for common flagship and midrange phones.",
+        "specifications": "Pack: 3\nMaterial: Silicone and TPU\nUse: Phone protection",
+    },
+    {
+        "name": "Study Lamp LED Desk Light",
+        "category": "School",
+        "brand": "Philips",
+        "price": 1799,
+        "discount_price": 1499,
+        "stock": 36,
+        "rating": 4.5,
+        "tag": "Study",
+        "is_featured": False,
+        "store": "tech",
+        "image_url": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80",
+        "description": "Same study lamp listing from the tech store for comparison shopping.",
+        "specifications": "Light: LED\nUse: Study desk\nPower: USB",
+    },
+    {
+        "name": "Raspberry Pi 5 Starter Kit",
+        "category": "Accessories",
+        "brand": "Raspberry Pi",
+        "price": 12999,
+        "discount_price": 11999,
+        "stock": 10,
+        "rating": 4.7,
+        "tag": "Maker",
+        "is_featured": False,
+        "store": "tech",
+        "image_url": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80",
+        "description": "Same maker kit from another store so buyers can compare sellers.",
+        "specifications": "Board: Raspberry Pi 5\nUse: Maker and learning kit\nIncludes: Board, power, cables",
+    },
+]
+
+products_data.extend(extra_products)
+
+project_root = os.getcwd()
+if not os.path.isdir(os.path.join(project_root, "frontend")):
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+product_media_dir = os.path.join(project_root, "frontend", "public", "product-media")
+
+local_product_images = {
+    "Arduino Uno Learning Kit": "/product-media/arduino-uno-learning-kit.jpg",
+    "Bamboo Lunch Box": "/product-media/bamboo-lunch-box.jpg",
+    "Bike Helmet Pro": "/product-media/bike-helmet-pro.jpg",
+    "Bike Phone Holder": "/product-media/bike-phone-holder.png",
+    "Cat Food Chicken": "/product-media/cat-food-chicken.jpg",
+    "CCTV Bullet Camera": "/product-media/cctv-bullet-camera.jpg",
+    "Dettol Original Soap 4 Pack": "/product-media/dettol-original-soap-4-pack.png",
+    "Dog Food Premium": "/product-media/dog-food-premium.jpg",
+    "Dukan Basics Dumbbell Set 20kg": "/product-media/dukan-basics-dumbbell-set-20kg.jpg",
+    "Dumbbell Set 20kg": "/product-media/dukan-basics-dumbbell-set-20kg.jpg",
+    "Ergonomic Gaming Chair": "/product-media/ergonomic-gaming-chair.jpg",
+    "Football Training Ball": "/product-media/football-training-ball.jpg",
+    "LED Bike Light Set": "/product-media/led-bike-light-set.jpg",
+    "Phone Case Pack": "/product-media/phone-case-pack.jpg",
+    "Pocket Notebook Set": "/product-media/pocket-notebook-set.jpg",
+    "Programming Books Bundle": "/product-media/programming-books-bundle.jpg",
+    "Raspberry Pi 5 Starter Kit": "/product-media/raspberry-pi-5-starter-kit.jpg",
+    "Reusable Water Bottle 1L": "/product-media/reusable-water-bottle-1l.jpg",
+    "Scientific Calculator Pro": "/product-media/scientific-calculator-pro.jpg",
+    "SEE Entrance Prep Books Pack": "/product-media/see-entrance-prep-books-pack.jpg",
+    "Solar Power Bank": "/product-media/solar-power-bank.jpg",
+    "Study Lamp LED Desk Light": "/product-media/study-lamp-led-desk-light.jpg",
+}
+
+def external_category_name(source_key, item):
+    title = str(item.get("title") or item.get("name") or "").lower()
+    raw_category = item.get("category")
+    if isinstance(raw_category, dict):
+        source_category = str(raw_category.get("name") or raw_category.get("slug") or "").lower()
+    else:
+        source_category = str(raw_category or "").lower()
+
+    if source_key == "fakestore":
+        if "backpack" in title:
+            return "School"
+        if any(term in title for term in ["jacket", "shirt", "t-shirt", "tee", "hoodie", "sweatshirt", "jogger", "pants", "cap", "shorts"]):
+            return "Fashion"
+        if any(term in title for term in ["monitor", "gaming drive", "hard drive", "ssd"]):
+            return "Gaming" if "gaming" in title or "monitor" in title else "Accessories"
+        if any(term in title for term in ["bracelet", "necklace", "ring"]):
+            return "Fashion"
+        return "Accessories"
+
+    if source_key == "dummyjson":
+        if source_category in {"beauty", "fragrances"}:
+            return "Beauty"
+        if source_category == "furniture":
+            return "Home"
+        if source_category == "groceries":
+            return "Groceries"
+        return "Accessories"
+
+    if source_key == "platzi":
+        if source_category == "clothes":
+            return "Fashion"
+        if source_category == "electronics":
+            if "laptop" in title:
+                return "Laptops"
+            if any(term in title for term in ["headphone", "earbud", "speaker", "audio"]):
+                return "Audio"
+            if "controller" in title or "gaming" in title:
+                return "Gaming"
+            if "mouse" in title or "watch" in title:
+                return "Accessories"
+            if "toaster" in title:
+                return "Appliances"
+            return "Accessories"
+        if source_category == "furniture":
+            return "Home"
+        return "Accessories"
+
+    return "Accessories"
+
+
+def external_source_image(item, source_key):
+    if source_key == "fakestore":
+        return item.get("image") or ""
+    if source_key == "dummyjson":
+        return item.get("thumbnail") or (item.get("images") or [""])[0]
+    if source_key == "platzi":
+        images = item.get("images") or []
+        return images[0] if images else ""
+    return ""
+
+
+def build_external_products():
+    source_specs = [
+        {
+            "key": "fakestore",
+            "url": "https://fakestoreapi.com/products",
+            "limit": 20,
+            "store": "fakestore",
+            "brand": "Fake Store",
+            "source_label": "Fake Store API",
+            "delivery_time_estimate": "2-4 business days",
+            "base_delivery_fee": Decimal("180.00"),
+        },
+        {
+            "key": "dummyjson",
+            "url": "https://dummyjson.com/products?limit=24&skip=0",
+            "limit": 24,
+            "store": "dummyjson",
+            "brand": "DummyJSON",
+            "source_label": "DummyJSON Products API",
+            "delivery_time_estimate": "1-3 business days",
+            "base_delivery_fee": Decimal("160.00"),
+        },
+        {
+            "key": "platzi",
+            "url": "https://api.escuelajs.co/api/v1/products?limit=24&offset=0",
+            "limit": 24,
+            "store": "platzi",
+            "brand": "Platzi",
+            "source_label": "Platzi Fake Store API",
+            "delivery_time_estimate": "2-5 business days",
+            "base_delivery_fee": Decimal("170.00"),
+        },
+    ]
+
+    extra_rows = []
+    for source in source_specs:
+        payload = fetch_json(source["url"])
+        items = payload.get("products", payload) if isinstance(payload, dict) else payload
+        for index, item in enumerate(items[:source["limit"]]):
+            title = str(item.get("title") or item.get("name") or "").strip()
+            if not title:
+                continue
+
+            base_price = Decimal(str(item.get("price") or 0))
+            price_npr = (base_price * Decimal("130")).quantize(Decimal("1"))
+            discount_price = None
+            discount_percentage = item.get("discountPercentage")
+            if discount_percentage:
+                discount_price = (
+                    price_npr * (Decimal("1") - Decimal(str(discount_percentage)) / Decimal("100"))
+                ).quantize(Decimal("1"))
+            elif index % 4 == 0:
+                discount_price = (price_npr * Decimal("0.9")).quantize(Decimal("1"))
+
+            stock = int(item.get("stock") or (18 + index * 2))
+            raw_rating = item.get("rating")
+            if isinstance(raw_rating, dict):
+                raw_rating = raw_rating.get("rate") or raw_rating.get("rating") or 4.3
+            rating = float(raw_rating or 4.3)
+            image_url = external_source_image(item, source["key"])
+            category_name = external_category_name(source["key"], item)
+            brand_name = str(item.get("brand") or source["brand"]).strip()
+            brand, _ = Brand.objects.get_or_create(name=brand_name)
+            brands[brand.name] = brand
+
+            details = [
+                f"Source: {source['source_label']}",
+                f"Category: {item.get('category', {}).get('name') if isinstance(item.get('category'), dict) else item.get('category', '')}",
+                f"Rating: {rating:.1f}",
+                f"Stock: {stock}",
+                f"Delivery: {source['delivery_time_estimate']}",
+            ]
+            if item.get("shippingInformation"):
+                details.append(f"Shipping: {item['shippingInformation']}")
+            if item.get("warrantyInformation"):
+                details.append(f"Warranty: {item['warrantyInformation']}")
+            if item.get("returnPolicy"):
+                details.append(f"Return: {item['returnPolicy']}")
+
+            extra_rows.append(
+                {
+                    "name": title,
+                    "category": category_name,
+                    "brand": brand.name,
+                    "price": price_npr,
+                    "discount_price": discount_price,
+                    "stock": stock,
+                    "rating": rating,
+                    "tag": source["source_label"].replace(" Products", "").replace(" API", ""),
+                    "is_featured": index < 2 or rating >= 4.6,
+                    "store": source["store"],
+                    "image_url": image_url,
+                    "description": item.get("description") or f"Imported from {source['source_label']}.",
+                    "specifications": "\n".join(details),
+                }
+            )
+
+    return extra_rows
+
+external_products = build_external_products()
+products_data.extend(external_products)
+print(f"Imported {len(external_products)} products from external APIs")
+
 for row in products_data:
     category = cats[row["category"]]
     brand = brands[row["brand"]]
-    image_url = row["image_url"]
+    image_url = local_product_images.get(row["name"], row["image_url"])
     store_map = {
         "barat": barat_store,
         "tech": tech_store,
         "fashion": fashion_store,
         "home": home_store,
+        "books": books_store,
+        "sports": sports_store,
+        "console": console_store,
+        "auto": auto_store,
+        "eco": eco_store,
+        "fakestore": fake_store,
+        "dummyjson": dummy_store,
+        "platzi": platzi_store,
     }
     category_store_map = {
         "Mobiles": tech_store,
         "Laptops": tech_store,
         "Accessories": tech_store,
         "Audio": tech_store,
-        "Gaming": tech_store,
+        "Gaming": console_store,
         "Networking": tech_store,
         "Fashion": fashion_store,
-        "Sports": fashion_store,
-        "Books": fashion_store,
+        "Sports": sports_store,
+        "Books": books_store,
+        "School": books_store,
+        "Stationery": books_store,
         "Home": home_store,
         "Beauty": home_store,
         "Appliances": home_store,
         "Groceries": barat_store,
+        "Cameras": tech_store,
+        "Pets": eco_store,
+        "Automotive & Bikes": auto_store,
+        "Eco & Sustainable": eco_store,
     }
     store = store_map.get(row.get("store")) or category_store_map.get(row["category"], barat_store)
     product_defaults = {
@@ -831,8 +1634,24 @@ for row in products_data:
     }
     product, created = Product.objects.update_or_create(
         name=row["name"],
+        store=store,
         defaults=product_defaults,
     )
+    for extension in ("jpg", "jpeg", "png", "webp"):
+        slug_image_path = os.path.join(product_media_dir, f"{product.slug}.{extension}")
+        if os.path.exists(slug_image_path):
+            image_url = f"/product-media/{product.slug}.{extension}"
+            break
+    if image_url.startswith("http"):
+        parsed = urlparse(image_url)
+        extension = os.path.splitext(parsed.path)[1].lower() or ".jpg"
+        if extension not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+            extension = ".jpg"
+        local_filename = f"{product.slug}{extension}"
+        try:
+            image_url = download_image(image_url, local_filename)
+        except Exception as exc:
+            print(f"Failed to download image for {product.name}: {exc}")
     ProductImage.objects.update_or_create(
         product=product,
         order=0,
@@ -843,12 +1662,18 @@ for row in products_data:
         },
     )
     Inventory.objects.update_or_create(product=product, defaults={"quantity": product.stock, "low_stock_threshold": 5})
+    seed_fake_reviews(product)
     if created:
         print(f"Added {product.name}")
 
+for product in Product.objects.all():
+    seed_fake_reviews(product)
+
 fallback_images = {
+    "automotive-bikes": "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80",
     "accessories": "https://images.unsplash.com/photo-1625961332771-3f40b0e2bdcf?auto=format&fit=crop&w=900&q=80",
     "appliances": "https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=900&q=80",
+    "cameras": "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=900&q=80",
     "audio": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=80",
     "beauty": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=80",
     "books": "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=900&q=80",
@@ -859,7 +1684,11 @@ fallback_images = {
     "laptops": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=900&q=80",
     "mobiles": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=80",
     "networking": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=900&q=80",
+    "pets": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=900&q=80",
+    "school": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80",
     "sports": "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=900&q=80",
+    "stationery": "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80",
+    "eco-sustainable": "https://images.unsplash.com/photo-1472141521881-95d0f57e1f47?auto=format&fit=crop&w=900&q=80",
 }
 
 for product in Product.objects.filter(images__isnull=True).select_related("category"):

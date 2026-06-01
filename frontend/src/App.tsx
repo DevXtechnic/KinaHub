@@ -21,6 +21,7 @@ import CRMPage from './pages/CRMPage';
 import OrdersPage from './pages/OrdersPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import StoreDetails from './pages/StoreDetails';
+import AiShopping from './pages/AiShopping';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 
@@ -42,6 +43,7 @@ function App() {
                 <Route path="products" element={<Products />} />
                 <Route path="product/:slug" element={<ProductDetails />} />
                 <Route path="store/:slug" element={<StoreDetails />} />
+                <Route path="ai" element={<AiShopping />} />
                 <Route path="cart" element={<Cart />} />
                 <Route path="checkout" element={<Checkout />} />
                 <Route path="privacy" element={<PrivacyPolicy />} />

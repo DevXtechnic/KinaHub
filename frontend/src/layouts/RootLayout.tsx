@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import MobileBottomNav from '../components/MobileBottomNav';
+import AiAssistantWidget from '../components/AiAssistantWidget';
 
 export default function RootLayout() {
   return (
@@ -11,6 +12,7 @@ export default function RootLayout() {
         <Outlet />
       </main>
       <Footer />
+      <AiAssistantWidget />
       <MobileBottomNav />
     </div>
   );

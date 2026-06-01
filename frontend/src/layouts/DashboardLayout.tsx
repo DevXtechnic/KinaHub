@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { BarChart3, Bell, ClipboardList, LayoutDashboard, Package, Settings, Store, Ticket, Users } from 'lucide-react';
+import { BarChart3, Bell, ClipboardList, LayoutDashboard, Package, Settings, Sparkles, Store, Ticket, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from '../components/ThemeToggle';
 import { useTranslation } from '../i18n/LocaleContext';
@@ -12,17 +12,20 @@ export default function DashboardLayout() {
   const roleNav = {
     customer: [
       { to: '/dashboard', label: t('dashboard.navAccount', { defaultValue: 'Account' }), icon: LayoutDashboard },
+      { to: '/ai', label: t('dashboard.navAI', { defaultValue: 'AI' }), icon: Sparkles },
       { to: '/dashboard/orders', label: t('dashboard.navOrders', { defaultValue: 'Orders' }), icon: ClipboardList },
       { to: '/dashboard/tickets', label: t('dashboard.navSupport', { defaultValue: 'Support' }), icon: Ticket },
     ],
     seller: [
       { to: '/seller', label: t('dashboard.navDashboard', { defaultValue: 'Dashboard' }), icon: BarChart3 },
+      { to: '/ai', label: t('dashboard.navAI', { defaultValue: 'AI' }), icon: Sparkles },
       { to: '/seller/products', label: t('dashboard.navProducts', { defaultValue: 'Products' }), icon: Package },
       { to: '/seller/orders', label: t('dashboard.navOrders', { defaultValue: 'Orders' }), icon: ClipboardList },
       { to: '/seller/customers', label: t('dashboard.navCustomers', { defaultValue: 'Customers' }), icon: Users },
     ],
     admin: [
       { to: '/admin', label: t('dashboard.navOverview', { defaultValue: 'Overview' }), icon: LayoutDashboard },
+      { to: '/ai', label: t('dashboard.navAI', { defaultValue: 'AI' }), icon: Sparkles },
       { to: '/admin/users', label: t('dashboard.navUsers', { defaultValue: 'Users' }), icon: Users },
       { to: '/admin/orders', label: t('dashboard.navOrders', { defaultValue: 'Orders' }), icon: ClipboardList },
       { to: '/admin/crm', label: t('dashboard.navCrm', { defaultValue: 'CRM' }), icon: Bell },
@@ -36,9 +39,8 @@ export default function DashboardLayout() {
     <div className="min-h-screen bg-background">
       <div className="border-b border-border bg-surface">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2 font-black">
-            <img src="/logo.png" alt="Dukan" className="h-9 w-auto" />
-            CRM
+          <Link to="/" className="flex items-center">
+            <img src="/logo.png" alt="Dukan" className="h-10 w-auto md:h-11 object-contain" />
           </Link>
           <div className="flex items-center gap-4 text-sm">
             <span className="hidden text-secondary sm:inline">{user?.email}</span>

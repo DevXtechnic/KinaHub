@@ -44,6 +44,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const addToCart = useCallback((product: ProductType, quantity = 1) => {
+    // Play satisfying sound
+    import('../lib/audio').then(m => m.playAddToCartSound());
+
     setItems((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -58,6 +61,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const removeFromCart = useCallback((productId: number) => {
+    import('../lib/audio').then(m => m.playRemoveFromCartSound());
     setItems((prev) => prev.filter((item) => item.product.id !== productId));
   }, []);
 

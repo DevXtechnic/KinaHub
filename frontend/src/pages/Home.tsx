@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BadgePercent, Truck, ShieldCheck, RefreshCw, Flame } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '../components/ProductCard';
 import ProductCardSkeleton from '../components/ProductCardSkeleton';
+import AiInsightPanel from '../components/AiInsightPanel';
 import { API, formatPrice, price, productImage } from '../lib/products';
+import { marketAiOverview } from '../lib/ai';
 import { getCategoryIcon } from '../lib/categoryIcons';
 import { categoryDescription, categoryName } from '../lib/categoryText';
 import type { CategoryType, ProductType } from '../lib/products';
@@ -16,6 +18,8 @@ export default function Home() {
   const { t } = useTranslation();
   const [products, setProducts] = useState<ProductType[]>([]);
   const [categories, setCategories] = useState<CategoryType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [heroReady, setHeroReady] = useState(false);
 
   const trustBadges = [
     { Icon: Truck, title: t('home.badgeFastDelivery', { defaultValue: 'Fast local delivery' }), copy: t('home.badgeFastCopy', { defaultValue: 'From nearby seller stores' }) },
@@ -24,10 +28,18 @@ export default function Home() {
   ];
 
   useEffect(() => {
+    setLoading(true);
     fetch(`${API}/items/?random=true`)
       .then((response) => response.json())
-      .then((data: ProductType[]) => setProducts(data.slice(0, 12)))
-      .catch(() => {});
+      .then((data: ProductType[]) => {
+        setProducts(data.slice(0, 12));
+        // Give the image a moment to start loading before revealing the hero
+        setTimeout(() => {
+          setHeroReady(true);
+          setLoading(false);
+        }, 600);
+      })
+      .catch(() => setLoading(false));
 
     fetch(`${API}/categories/`)
       .then((response) => response.json())
@@ -84,44 +96,73 @@ export default function Home() {
           </motion.div>
 
           <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
-            {heroProduct ? (
-              <Link to={`/product/${heroProduct.slug}`} className="group block">
-                <div className="aspect-[5/4] overflow-hidden rounded-md bg-muted">
-                  <img
-                    src={productImage(heroProduct)}
-                    alt={heroProduct.name}
-                    className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                  />
-                </div>
-                <div className="pt-4">
-                  <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-                    <span className="font-semibold text-accent">{heroProduct.tag || categoryName(t, heroProduct.category.slug, heroProduct.category.name)}</span>
-                    <span className="text-secondary">{heroProduct.stock} {t('home.leftInStock', { defaultValue: 'left' })}</span>
+            <AnimatePresence mode="wait">
+              {heroProduct && heroReady ? (
+                <motion.div
+                  key="hero"
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                >
+                  <Link to={`/product/${heroProduct.slug}`} className="group block">
+                    <div className="aspect-[5/4] overflow-hidden rounded-md bg-muted">
+                      <img
+                        src={productImage(heroProduct)}
+                        alt={heroProduct.name}
+                        className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </div>
+                    <div className="pt-4">
+                      <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+                        <span className="font-semibold text-accent">{heroProduct.tag || categoryName(t, heroProduct.category.slug, heroProduct.category.name)}</span>
+                        <span className="text-secondary">{heroProduct.stock} {t('home.leftInStock', { defaultValue: 'left' })}</span>
+                      </div>
+                      <h2 className="line-clamp-1 text-xl font-bold sm:text-2xl">{heroProduct.name}</h2>
+                      {heroProduct.store?.name && (
+                        <p className="mt-1 text-sm font-medium text-secondary">
+                          {t('products.soldBy', { defaultValue: 'Sold by' })} {heroProduct.store.name}
+                        </p>
+                      )}
+                      <div className="mt-2 flex items-baseline gap-3">
+                        <span className="text-2xl font-black text-primary">{formatPrice(price(heroProduct))}</span>
+                        {heroProduct.discount_price && (
+                          <span className="text-sm text-secondary line-through">{formatPrice(heroProduct.price)}</span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="skeleton"
+                  initial={{ opacity: 0.6 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="animate-pulse"
+                >
+                  <div className="aspect-[5/4] rounded-md bg-muted/60" />
+                  <div className="pt-4 space-y-3">
+                    <div className="flex justify-between">
+                      <div className="h-4 w-24 rounded bg-muted/60" />
+                      <div className="h-4 w-16 rounded bg-muted/60" />
+                    </div>
+                    <div className="h-7 w-3/4 rounded bg-muted/60" />
+                    <div className="h-4 w-1/2 rounded bg-muted/60" />
+                    <div className="h-8 w-1/3 rounded bg-muted/60" />
                   </div>
-                  <h2 className="line-clamp-1 text-xl font-bold sm:text-2xl">{heroProduct.name}</h2>
-                  {heroProduct.store?.name && (
-                    <p className="mt-1 text-sm font-medium text-secondary">
-                      {t('products.soldBy', { defaultValue: 'Sold by' })} {heroProduct.store.name}
-                    </p>
-                  )}
-                  <div className="mt-2 flex items-baseline gap-3">
-                    <span className="text-2xl font-black text-primary">{formatPrice(price(heroProduct))}</span>
-                    {heroProduct.discount_price && (
-                      <span className="text-sm text-secondary line-through">{formatPrice(heroProduct.price)}</span>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {[...Array(5)].map((_, i) => (
-                  <ProductCardSkeleton key={i} />
-                ))}
-              </div>
-            )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </section>
+
+      {products.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <AiInsightPanel title="AI shopping overview" insights={marketAiOverview(products)} />
+        </section>
+      )}
 
       <section className="border-b border-border bg-muted/40">
         <div className="mx-auto grid max-w-7xl grid-cols-1 divide-y divide-border px-4 sm:px-6 md:grid-cols-3 md:divide-x md:divide-y-0 lg:px-8">

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from sellers.serializers import StoreSerializer
-from .models import Product, Category, Brand, ProductImage, Inventory
+from .models import Product, Category, Brand, ProductImage, Inventory, Review
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -24,7 +24,29 @@ class InventorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Inventory
         fields = ["sku", "quantity", "low_stock_threshold", "reserved_quantity", "available_quantity", "updated_at"]
-        read_only_fields = ["reserved_quantity", "available_quantity", "updated_at"]
+    read_only_fields = ["reserved_quantity", "available_quantity", "updated_at"]
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    created_at = serializers.DateTimeField(read_only=True)
+    updated_at = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = Review
+        fields = [
+            "id",
+            "product",
+            "name",
+            "rating",
+            "title",
+            "comment",
+            "image_url",
+            "video_url",
+            "is_verified_purchase",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "product", "created_at", "updated_at", "is_verified_purchase"]
 
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
@@ -35,7 +57,10 @@ class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     primary_image_url = serializers.URLField(write_only=True, required=False, allow_blank=True)
     inventory = InventorySerializer(read_only=True)
+    reviews = ReviewSerializer(many=True, read_only=True)
     specs = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -43,7 +68,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'store', 'category', 'category_id', 'brand', 'brand_id',
             'description', 'specifications', 'specs',
             'price', 'discount_price', 'stock', 'rating', 
-            'tag', 'images', 'primary_image_url', 'inventory', 'is_featured', 'is_active',
+            'tag', 'images', 'primary_image_url', 'inventory', 'reviews', 'review_count', 'average_rating', 'is_featured', 'is_active',
             'created_at', 'updated_at'
         ]
         read_only_fields = ["id", "slug", "store", "images", "inventory", "created_at", "updated_at"]
@@ -70,3 +95,12 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_specs(self, obj):
         return obj.get_specs_list()
+
+    def get_review_count(self, obj):
+        return obj.reviews.count()
+
+    def get_average_rating(self, obj):
+        reviews = obj.reviews.all()
+        if not reviews.exists():
+            return float(obj.rating)
+        return round(sum(review.rating for review in reviews) / reviews.count(), 2)

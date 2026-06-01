@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -32,14 +32,22 @@ interface PaymentFieldConfig {
   inputMode?: 'text' | 'numeric' | 'email' | 'tel' | 'decimal';
 }
 
+interface DeliveryCalculationResponse {
+  total_fee?: string | number;
+  delivery_fee?: string | number;
+  estimated_time?: string;
+  item_deliveries?: Record<string, { fee: string; eta: string }>;
+}
+
 export default function Checkout() {
   const navigate = useNavigate();
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const { items, totalPrice, clearCart } = useCart();
   const { token, user } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodId>('cod');
   const [deliveryEta, setDeliveryEta] = useState('');
   const [deliveryFee, setDeliveryFee] = useState(0);
+  const [itemDeliveries, setItemDeliveries] = useState<Record<string, {fee: string, eta: string}>>({});
   const [isCalculatingDelivery, setIsCalculatingDelivery] = useState(false);
   const [placed, setPlaced] = useState(false);
   const [error, setError] = useState('');
@@ -50,6 +58,11 @@ export default function Checkout() {
   const [addressDetail, setAddressDetail] = useState('');
   const [customerNote, setCustomerNote] = useState('');
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [focusedSuggestionIndex, setFocusedSuggestionIndex] = useState(-1);
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  const houseDetailRef = useRef<HTMLTextAreaElement>(null);
+  const instructionsRef = useRef<HTMLTextAreaElement>(null);
+  const promoCodeRef = useRef<HTMLInputElement>(null);
   const [paymentDetails, setPaymentDetails] = useState<Record<string, string>>({});
   const paymentMethods = useMemo(
     () => [
@@ -164,10 +177,7 @@ export default function Checkout() {
     [t]
   );
 
-  const selectedDeliveryMethod = useMemo(
-    () => deliveryMethods.find((method) => method.id === deliveryMethod) || deliveryMethods[0],
-    [deliveryMethod, deliveryMethods]
-  );
+
 
   const selectedPaymentConfig =
     paymentMethod === 'cod' ? null : paymentDetailConfig[paymentMethod as Exclude<PaymentMethodId, 'cod'>];
@@ -175,14 +185,26 @@ export default function Checkout() {
     paymentMethods.find((method) => method.id === paymentMethod)?.label || paymentMethod;
 
   const addressSuggestions = useMemo(
-    () => getKathmanduSuggestions(addressQuery).filter((item) => item.label !== addressQuery.trim()),
+    () => {
+      const suggestions = getKathmanduSuggestions(addressQuery).filter((item) => item.label !== addressQuery.trim());
+      // Reset focus index when suggestions change
+      setFocusedSuggestionIndex(-1);
+      return suggestions;
+    },
     [addressQuery]
   );
+
+  useEffect(() => {
+    if (focusedSuggestionIndex >= 0) {
+      document.getElementById(`suggestion-${focusedSuggestionIndex}`)?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [focusedSuggestionIndex]);
 
   useEffect(() => {
     if (!addressQuery.trim()) {
       setDeliveryFee(0);
       setDeliveryEta('');
+      setItemDeliveries({});
       return;
     }
 
@@ -193,12 +215,21 @@ export default function Checkout() {
           shipping_address: addressQuery,
           items: items.map(i => ({ product_id: i.product.id, quantity: i.quantity }))
         };
-        const response = await apiRequest('/orders/calculate_delivery/', {
+        const response = await apiRequest<DeliveryCalculationResponse>('/orders/calculate_delivery/', {
           method: 'POST',
           body: JSON.stringify(payload)
         });
-        setDeliveryFee(Number(response.delivery_fee));
-        setDeliveryEta(response.estimated_time);
+        setDeliveryFee(Number(response.total_fee || response.delivery_fee || 0));
+        setItemDeliveries(response.item_deliveries || {});
+        
+        // Aggregate unique ETAs for fallback/total display
+        if (response.item_deliveries) {
+          const etas = Object.values(response.item_deliveries).map((info) => info.eta);
+          const uniqueEtas = Array.from(new Set(etas));
+          setDeliveryEta(uniqueEtas.join(', '));
+        } else {
+          setDeliveryEta(response.estimated_time || '');
+        }
       } catch (err) {
         console.error('Failed to calculate delivery fee:', err);
       } finally {
@@ -353,23 +384,46 @@ export default function Checkout() {
                   }}
                   onFocus={() => setShowAddressSuggestions(true)}
                   onBlur={() => window.setTimeout(() => setShowAddressSuggestions(false), 120)}
+                  onKeyDown={(e) => {
+                    if (!showAddressSuggestions || addressSuggestions.length === 0) return;
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setFocusedSuggestionIndex((prev) => (prev < addressSuggestions.length - 1 ? prev + 1 : prev));
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setFocusedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
+                    } else if (e.key === 'Enter') {
+                      if (focusedSuggestionIndex >= 0) {
+                        e.preventDefault();
+                        setAddressQuery(addressSuggestions[focusedSuggestionIndex].label);
+                        setShowAddressSuggestions(false);
+                        houseDetailRef.current?.focus();
+                      }
+                    } else if (e.key === 'Tab') {
+                      setShowAddressSuggestions(false);
+                      setFocusedSuggestionIndex(-1);
+                    }
+                  }}
                   placeholder={t('checkout.searchHint', { defaultValue: 'Type Gongabu, Thamel, Gyaneshwor...' })}
+                  ref={addressInputRef}
                   className="h-11 w-full rounded-md border border-border bg-background pl-10 pr-3 text-base outline-none transition-colors focus:border-accent"
                 />
               </div>
 
               {showAddressSuggestions && addressSuggestions.length > 0 && (
                 <div className="absolute z-10 mt-2 max-h-56 w-full overflow-y-auto overflow-hidden rounded-lg border border-border bg-surface shadow-xl">
-                  {addressSuggestions.map((item) => (
+                  {addressSuggestions.map((item, index) => (
                     <button
                       key={`${item.label}-${item.city}`}
+                      id={`suggestion-${index}`}
                       type="button"
                       onMouseDown={(event) => {
                         event.preventDefault();
                         setAddressQuery(item.label);
                         setShowAddressSuggestions(false);
+                        houseDetailRef.current?.focus();
                       }}
-                      className="flex w-full items-center justify-between gap-4 border-b border-border px-4 py-3 text-left text-base last:border-b-0 hover:bg-muted"
+                      className={`flex w-full items-center justify-between gap-4 border-b border-border px-4 py-3 text-left text-base last:border-b-0 hover:bg-muted ${index === focusedSuggestionIndex ? 'bg-muted' : ''}`}
                     >
                       <span className="font-semibold text-primary">{item.label}</span>
                       <span className="text-xs text-secondary">{item.city}</span>
@@ -385,8 +439,15 @@ export default function Checkout() {
               <div>
                 <label className="mb-2 block text-sm font-semibold">{t('checkout.houseLabel', { defaultValue: 'House, ward, landmark' })}</label>
                 <textarea
+                  ref={houseDetailRef}
                   value={addressDetail}
                   onChange={(event) => setAddressDetail(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Tab' && !event.shiftKey) {
+                      event.preventDefault();
+                      instructionsRef.current?.focus();
+                    }
+                  }}
                   className="min-h-24 w-full rounded-md border border-border bg-background px-3 py-3 text-base outline-none focus:border-accent"
                   placeholder={t('checkout.housePlaceholder', { defaultValue: 'House number, ward, apartment, landmark' })}
                 />
@@ -395,8 +456,15 @@ export default function Checkout() {
               <div>
                 <label className="mb-2 block text-sm font-semibold">{t('checkout.instructionsLabel', { defaultValue: 'Delivery instructions' })}</label>
                 <textarea
+                  ref={instructionsRef}
                   value={customerNote}
                   onChange={(event) => setCustomerNote(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Tab' && !event.shiftKey) {
+                      event.preventDefault();
+                      promoCodeRef.current?.focus();
+                    }
+                  }}
                   className="min-h-24 w-full rounded-md border border-border bg-background px-3 py-3 text-base outline-none focus:border-accent"
                   placeholder={t('checkout.instructionsPlaceholder', { defaultValue: 'Call on arrival, leave at reception, gate code, and similar notes' })}
                 />
@@ -485,17 +553,32 @@ export default function Checkout() {
               </div>
               <div className="mt-3 space-y-3">
                 {items.map(({ product, quantity }) => (
-                  <div key={product.id} className="flex items-center gap-3 rounded-md bg-surface p-2">
-                    <div className="h-12 w-12 overflow-hidden rounded-md bg-muted">
-                      {productImage(product) ? (
-                        <img src={productImage(product)} alt={product.name} className="h-full w-full object-cover" />
-                      ) : null}
+                  <div key={product.id} className="flex flex-col gap-2 rounded-md bg-surface p-2">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 overflow-hidden rounded-md bg-muted">
+                        {productImage(product) ? (
+                          <img src={productImage(product)} alt={product.name} className="h-full w-full object-cover" />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">{product.name}</p>
+                        <p className="text-xs text-secondary">{t('cart.qty', { defaultValue: 'Qty' })} {quantity}</p>
+                      </div>
+                      <p className="shrink-0 text-sm font-semibold">{formatPrice(price(product) * quantity)}</p>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{product.name}</p>
-                      <p className="text-xs text-secondary">{t('cart.qty', { defaultValue: 'Qty' })} {quantity}</p>
-                    </div>
-                    <p className="shrink-0 text-sm font-semibold">{formatPrice(price(product) * quantity)}</p>
+                    {itemDeliveries[product.id] && !isCalculatingDelivery && (
+                      <div className="mt-1 flex items-center justify-between rounded bg-background px-2 py-1.5 text-xs">
+                        <div className="flex items-center gap-1.5 text-accent">
+                          <Truck className="h-3.5 w-3.5" />
+                          <span className="font-medium">{itemDeliveries[product.id].eta}</span>
+                        </div>
+                        <span className="font-semibold text-secondary">
+                          {Number(itemDeliveries[product.id].fee) === 0
+                            ? t('checkout.freeDelivery', { defaultValue: 'Free' })
+                            : `+ ${formatPrice(Number(itemDeliveries[product.id].fee))}`}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -517,7 +600,7 @@ export default function Checkout() {
                 </span>
               </div>
               
-              {!isCalculatingDelivery && deliveryEta && (
+              {!isCalculatingDelivery && deliveryEta && Object.keys(itemDeliveries).length === 0 && (
                 <div className="flex justify-between py-1 text-sm bg-accent/10 rounded-md px-2 -mx-2">
                   <span className="text-accent text-xs font-semibold">{t('checkout.etaSummary', { defaultValue: 'Estimated Time' })}</span>
                   <span className="text-accent text-xs font-bold">{deliveryEta}</span>
@@ -530,8 +613,15 @@ export default function Checkout() {
                 </div>
                 <div className="mt-3 flex gap-2">
                   <input
+                    ref={promoCodeRef}
                     value={promoCodeInput}
                     onChange={(event) => setPromoCodeInput(event.target.value.toLowerCase())}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        applyPromoCode();
+                      }
+                    }}
                     placeholder={t('checkout.promoPlaceholder', { defaultValue: 'Enter promo code' })}
                     className="h-11 min-w-0 flex-1 rounded-md border border-border bg-surface px-3 text-base outline-none transition-colors focus:border-accent"
                   />
@@ -567,9 +657,8 @@ export default function Checkout() {
             </div>
 
             <div className="mt-5 rounded-lg border border-border bg-background p-4 text-sm">
-              <p className="font-semibold text-primary">{t('checkout.deliverySummary', { defaultValue: 'Delivery summary' })}</p>
               <p className="mt-1 text-secondary">
-                {selectedDeliveryMethod.label} · {selectedDeliveryMethod.eta}
+                {t('checkout.dynamicDeliveryLabel', { defaultValue: 'Dynamic Delivery' })} · {deliveryEta || t('checkout.pendingEta', { defaultValue: 'Pending...' })}
               </p>
               <p className="mt-2 text-secondary">
                 {deliveryAddress || t('checkout.searchAnAreaFirst', { defaultValue: 'Search an area first to build the full delivery address.' })}

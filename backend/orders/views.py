@@ -59,7 +59,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         )
         return Response(OrderSerializer(order, context={"request": request}).data)
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], permission_classes=[permissions.AllowAny])
     def calculate_delivery(self, request):
         from .utils import calculate_delivery_info
         from products.models import Product
@@ -68,10 +68,17 @@ class OrderViewSet(viewsets.ModelViewSet):
         items = request.data.get("items", [])
         product_ids = [item.get("product_id") for item in items if item.get("product_id")]
         
-        products = Product.objects.filter(id__in=product_ids, is_active=True)
-        fee, eta = calculate_delivery_info(shipping_address, products)
+        # Build a {product_id: quantity} map so the algorithm can calculate real subtotals
+        quantity_map = {}
+        for item in items:
+            pid = item.get("product_id")
+            if pid:
+                quantity_map[pid] = item.get("quantity", 1)
+        
+        products = Product.objects.select_related("category", "store").filter(id__in=product_ids, is_active=True)
+        total_fee, item_deliveries = calculate_delivery_info(shipping_address, products, quantity_map)
         
         return Response({
-            "delivery_fee": str(fee),
-            "estimated_time": eta
+            "total_fee": str(total_fee),
+            "item_deliveries": item_deliveries
         })

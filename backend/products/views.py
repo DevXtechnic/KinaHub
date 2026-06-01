@@ -4,8 +4,9 @@ from rest_framework import viewsets, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from .models import Product, Category, Brand
-from .serializers import ProductSerializer, CategorySerializer, BrandSerializer
+from django.shortcuts import get_object_or_404
+from .models import Product, Category, Brand, Review
+from .serializers import ProductSerializer, CategorySerializer, BrandSerializer, ReviewSerializer
 
 class ProductAccessPermission(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -27,6 +28,8 @@ class ProductViewSet(viewsets.ModelViewSet):
         store = self.request.query_params.get('store')
         featured = self.request.query_params.get('featured')
         query = self.request.query_params.get('q')
+        price_min = self.request.query_params.get('price_min')
+        price_max = self.request.query_params.get('price_max')
         sort = self.request.query_params.get('sort', '').lower().strip()
         mine = self.request.query_params.get('mine', 'false').lower() == 'true'
 
@@ -55,6 +58,15 @@ class ProductViewSet(viewsets.ModelViewSet):
                 Q(brand__name__icontains=query) |
                 Q(store__name__icontains=query)
             )
+
+        if price_min or price_max:
+            queryset = queryset.annotate(
+                effective_price=Coalesce('discount_price', 'price', output_field=DecimalField(max_digits=10, decimal_places=2))
+            )
+            if price_min:
+                queryset = queryset.filter(effective_price__gte=price_min)
+            if price_max:
+                queryset = queryset.filter(effective_price__lte=price_max)
 
         is_random = self.request.query_params.get('random', 'false').lower() == 'true'
         if sort == 'price_low':
@@ -117,6 +129,39 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
 
 
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.select_related('product', 'user')
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        product_slug = self.request.query_params.get('product')
+        if product_slug:
+            queryset = queryset.filter(product__slug=product_slug)
+        return queryset
+
+    def perform_create(self, serializer):
+        product_ref = self.request.data.get('product')
+        if not product_ref:
+            raise ValidationError({"product": "Product is required."})
+        product = get_object_or_404(Product, slug=product_ref)
+        name = (self.request.data.get('name') or '').strip()
+        if not name and self.request.user.is_authenticated:
+            name = self.request.user.get_full_name().strip() or self.request.user.email
+        if not name:
+            name = 'Guest'
+        rating = int(self.request.data.get('rating') or 5)
+        rating = max(1, min(rating, 5))
+        serializer.save(
+            product=product,
+            user=self.request.user if self.request.user.is_authenticated else None,
+            name=name,
+            rating=rating,
+            is_verified_purchase=False,
+        )
+
+
 class SearchSuggestionsView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -126,37 +171,49 @@ class SearchSuggestionsView(APIView):
             return Response({'suggestions': []})
 
         suggestions = []
+        seen = set()
+
+        def add_suggestion(value: str):
+            normalized = value.strip().lower()
+            if normalized and normalized not in seen:
+                seen.add(normalized)
+                suggestions.append(value.strip())
 
         # 1. Exact or partial category matches
-        categories = Category.objects.filter(name__icontains=query).values_list('name', flat=True)[:3]
-        for c in categories:
-            suggestions.append(c.lower())
+        categories = Category.objects.filter(
+            Q(name__icontains=query) | Q(slug__icontains=query) | Q(description__icontains=query)
+        ).values_list('name', 'slug')[:4]
+        for category_name, category_slug in categories:
+            add_suggestion(category_name)
+            add_suggestion(f"{category_name} products")
+            add_suggestion(f"{category_slug.replace('-', ' ')} deals")
 
         # 2. Products matching query
         products = Product.objects.filter(
             is_active=True
         ).filter(
-            Q(name__icontains=query) | Q(category__name__icontains=query) | Q(brand__name__icontains=query)
-        ).select_related('category', 'brand')[:20]
+            Q(name__icontains=query) |
+            Q(category__name__icontains=query) |
+            Q(category__slug__icontains=query) |
+            Q(brand__name__icontains=query) |
+            Q(store__name__icontains=query) |
+            Q(description__icontains=query)
+        ).select_related('category', 'brand', 'store')[:24]
 
         for p in products:
-            # Suggest the product name itself
-            if query in p.name.lower():
-                suggestions.append(p.name.lower())
-
-            # Suggest category + brand
+            add_suggestion(p.name)
             if p.brand:
-                cat_brand = f"{p.category.name.lower()} {p.brand.name.lower()}"
-                if query in cat_brand or query in p.category.name.lower():
-                    suggestions.append(cat_brand)
-
-        # Deduplicate and keep order
-        seen = set()
-        unique_suggestions = []
-        for s in suggestions:
-            if s not in seen:
-                seen.add(s)
-                unique_suggestions.append(s)
+                add_suggestion(f"{p.brand.name} {p.category.name}")
+                add_suggestion(f"{p.brand.name} {p.name}")
+            add_suggestion(f"{p.category.name} from {p.store.name}" if p.store else f"{p.category.name} products")
+            if p.store:
+                add_suggestion(f"{p.name} from {p.store.name}")
+                add_suggestion(f"{p.store.name} {p.category.name}")
+                add_suggestion(f"{p.store.name} store")
+            # Suggest a more specific comparison/search phrase for marketplace-style navigation.
+            if p.brand:
+                add_suggestion(f"{p.category.name} {p.brand.name}")
+                add_suggestion(f"{p.brand.name} {p.category.name} from {p.store.name}" if p.store else f"{p.brand.name} {p.category.name}")
 
         # Return top 8
-        return Response({'suggestions': unique_suggestions[:8]})
+        return Response({'suggestions': suggestions[:8]})
